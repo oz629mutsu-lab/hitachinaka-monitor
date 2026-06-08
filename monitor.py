@@ -357,7 +357,16 @@ def main():
     if minor_24h: counts.append(f"その他{len(minor_24h)}件")
     summary_line = "・".join(counts)
 
-    msg = f"【ひたちなか市 更新情報】{jst_str}\n{summary_line}\n\n{PAGES_URL}"
+    # 8:05 JST まで待機してから送信
+    jst_now = datetime.now(timezone.utc) + timedelta(hours=9)
+    target = jst_now.replace(hour=8, minute=5, second=0, microsecond=0)
+    if jst_now < target:
+        wait_sec = (target - jst_now).total_seconds()
+        print(f"  8:05 JST まで {wait_sec:.0f}秒 待機中...")
+        time.sleep(wait_sec)
+
+    send_time = (datetime.now(timezone.utc) + timedelta(hours=9)).strftime("%m/%d %H:%M")
+    msg = f"【ひたちなか市 更新情報】{send_time}\n{summary_line}\n\n{PAGES_URL}"
     send_line(msg)
     print(f"✓ LINE送信: {msg}")
 
