@@ -96,7 +96,7 @@ def ai_summary(title, page_text, pdf_list):
         return page_text[:400]
 
     parts = [f"タイトル: {title}"]
-    if page_text: parts.append(f"ページ本文:\n{page_text[:3000]}")
+    if page_text: parts.append(f"ページ本文:\n{page_text[:2000]}")
     for i, (url, text) in enumerate(pdf_list, 1):
         parts.append(f"PDF{i}内容:\n{text}" if text else f"PDF{i}: {url}（取得不可）")
 
@@ -122,10 +122,8 @@ def ai_summary(title, page_text, pdf_list):
 【情報】
 {"　".join(parts)}"""
 
-    for attempt in range(3):
+    for attempt in range(5):
         try:
-            if attempt > 0:
-                time.sleep(10 * attempt)
             res = requests.post(
                 "https://api.groq.com/openai/v1/chat/completions",
                 headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
@@ -135,19 +133,24 @@ def ai_summary(title, page_text, pdf_list):
                         {"role":"system","content":"あなたはひたちなか市議会議員秘書のアシスタントです。市政情報を正確かつ詳しく、固有名詞や数値を省略せずに伝えることが仕事です。"},
                         {"role":"user","content": user_prompt}
                     ],
-                    "max_tokens": 1200,
+                    "max_tokens": 900,
                     "temperature": 0.1
                 },
-                timeout=30
+                timeout=40
             )
             data = res.json()
             if "choices" in data:
                 return data["choices"][0]["message"]["content"]
             err = data.get("error", {}).get("message", str(data))
-            print(f"  Groq APIエラー(試行{attempt+1}): {err}")
+            # レート制限エラーから待機秒数を取得して待つ
+            wait = re.search(r"try again in ([\d.]+)s", err)
+            wait_sec = float(wait.group(1)) + 3 if wait else 30
+            print(f"  Groq待機(試行{attempt+1}): {wait_sec:.0f}秒")
+            time.sleep(wait_sec)
         except Exception as e:
-            print(f"  Groq APIエラー(試行{attempt+1}): {e}")
-    return f"（AI要約取得失敗 — 詳細は元サイトをご確認ください）"
+            print(f"  Groq例外(試行{attempt+1}): {e}")
+            time.sleep(15)
+    return "（AI要約取得失敗 — 詳細は元サイトをご確認ください）"
 
 
 def load_seen():
