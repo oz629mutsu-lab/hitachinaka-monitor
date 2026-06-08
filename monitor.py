@@ -98,11 +98,19 @@ def ai_summary(title, page_text, pdf_list):
 
     user_prompt = f"""以下のひたちなか市公式情報をLINE通知用に要約してください。
 
-【要件】
-・何についての情報か冒頭に明示
-・重要な数値・日程・金額・対象者を必ず含める
-・市政・議会の観点から見た意義・影響を補足
-・400文字以内、箇条書き
+【厳守ルール】
+- ※は一切使わない
+- 箇条書きは「・」のみ使用
+- 「令和」「年月日」などの日程は省略せず正確に記載
+- 金額・数値・対象者は必ず含める
+- 難しい行政用語は平易な言葉に言い換える
+- 300文字以内
+- 最後の行に「詳細URL」は不要（別途送信するため）
+
+【構成】
+1行目：何についての情報か（一文）
+空行
+・重要ポイントを2〜4項目
 
 【情報】
 {"　".join(parts)}"""
@@ -114,7 +122,7 @@ def ai_summary(title, page_text, pdf_list):
             json={
                 "model": "llama-3.3-70b-versatile",
                 "messages": [
-                    {"role":"system","content":"あなたはひたちなか市の政治秘書のアシスタントです。"},
+                    {"role":"system","content":"あなたはひたちなか市議会議員秘書のアシスタントです。市政情報をわかりやすく簡潔に伝えることが仕事です。"},
                     {"role":"user","content": user_prompt}
                 ],
                 "max_tokens": 500,
@@ -166,8 +174,8 @@ def process_important(item, label):
     page_text, pdf_links = fetch_page(item["link"])
     pdf_list = [(url, fetch_pdf(url)) for url in pdf_links]
     summary  = ai_summary(item["title"], page_text, pdf_list)
-    send_line(f"{label}【概要】\n{item['title']}\n\n{summary}")
-    send_line(f"{label}\n{item['title']}\n\n{item['link']}")
+    message  = f"{label}\n{item['title']}\n\n{summary}\n\n▷ {item['link']}"
+    send_line(message)
 
 def main():
     if not LINE_TOKEN or not LINE_USER_ID:
