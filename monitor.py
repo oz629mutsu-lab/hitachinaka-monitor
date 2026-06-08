@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ひたちなか市ホームページ監視スクリプト v5 (GitHub Pages版)"""
 
-import json, os, urllib.request, xml.etree.ElementTree as ET, io, re, hashlib
+import json, os, urllib.request, xml.etree.ElementTree as ET, io, re, hashlib, time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from html.parser import HTMLParser
@@ -74,6 +74,7 @@ def to_abs(href):
 def fetch_page(url):
     try:
         res = requests.get(url, headers={"User-Agent":"Mozilla/5.0"}, timeout=15)
+        res.encoding = res.apparent_encoding or "utf-8"
         p = SmartParser(); p.feed(res.text)
         return p.get_text(), [to_abs(l) for l in p.get_pdf_links()[:3]]
     except Exception as e:
@@ -121,24 +122,32 @@ def ai_summary(title, page_text, pdf_list):
 【情報】
 {"　".join(parts)}"""
 
-    try:
-        res = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
-            json={
-                "model": "llama-3.3-70b-versatile",
-                "messages": [
-                    {"role":"system","content":"あなたはひたちなか市議会議員秘書のアシスタントです。市政情報を正確かつ詳しく、固有名詞や数値を省略せずに伝えることが仕事です。"},
-                    {"role":"user","content": user_prompt}
-                ],
-                "max_tokens": 1200,
-                "temperature": 0.1
-            },
-            timeout=30
-        )
-        return res.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        print(f"  Groq APIエラー: {e}"); return page_text[:800]
+    for attempt in range(3):
+        try:
+            if attempt > 0:
+                time.sleep(10 * attempt)
+            res = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+                json={
+                    "model": "llama-3.3-70b-versatile",
+                    "messages": [
+                        {"role":"system","content":"あなたはひたちなか市議会議員秘書のアシスタントです。市政情報を正確かつ詳しく、固有名詞や数値を省略せずに伝えることが仕事です。"},
+                        {"role":"user","content": user_prompt}
+                    ],
+                    "max_tokens": 1200,
+                    "temperature": 0.1
+                },
+                timeout=30
+            )
+            data = res.json()
+            if "choices" in data:
+                return data["choices"][0]["message"]["content"]
+            err = data.get("error", {}).get("message", str(data))
+            print(f"  Groq APIエラー(試行{attempt+1}): {err}")
+        except Exception as e:
+            print(f"  Groq APIエラー(試行{attempt+1}): {e}")
+    return f"（AI要約取得失敗 — 詳細は元サイトをご確認ください）"
 
 
 def load_seen():
@@ -288,7 +297,13 @@ footer{{text-align:center;font-size:12px;color:#888;padding:24px;margin-top:16px
 </html>"""
 
 
+_item_count = 0
+
 def process_item(item, label):
+    global _item_count
+    if _item_count > 0:
+        time.sleep(5)
+    _item_count += 1
     print(f"  処理中: {item['title'][:50]}")
     page_text, pdf_links = fetch_page(item["link"])
     pdf_list = [(url, fetch_pdf(url)) for url in pdf_links]
