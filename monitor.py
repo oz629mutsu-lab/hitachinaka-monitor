@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""ひたちなか市ホームページ監視スクリプト v3（Groq AI要約版）"""
+"""ひたちなか市ホームページ監視スクリプト v4"""
 
 import json, os, urllib.request, xml.etree.ElementTree as ET, io, re
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from html.parser import HTMLParser
 from email.utils import parsedate_to_datetime
+import requests
 
-RSS_URL = "https://www.city.hitachinaka.lg.jp/news.rss"
-BASE_URL = "https://www.city.hitachinaka.lg.jp"
+RSS_URL      = "https://www.city.hitachinaka.lg.jp/news.rss"
+BASE_URL     = "https://www.city.hitachinaka.lg.jp"
 LINE_TOKEN   = os.environ.get("LINE_TOKEN", "")
 LINE_USER_ID = os.environ.get("LINE_USER_ID", "")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
@@ -23,52 +24,43 @@ IMPORTANT_KEYWORDS = [
     "入札","新規事業","計画","整備","工事","開発","方針","施策","改正","廃止"
 ]
 
-# ========== HTML解析 ==========
 
 class SmartParser(HTMLParser):
-    """ナビ・ヘッダー・フッター等を除いてメイン本文のみ抽出"""
-    SKIP_TAGS = {"script","style","noscript","head"}
+    SKIP_TAGS  = {"script","style","noscript","head"}
     SKIP_WORDS = {"nav","menu","header","footer","sidebar","breadcrumb",
                   "gnav","snav","pagetop","global","local","utility","tool"}
 
     def __init__(self):
         super().__init__()
-        self._lines, self._pdf_links = [], []
-        self._skip_stack = 0
+        self._lines, self._pdf_links, self._skip = [], [], 0
 
-    def _should_skip(self, attrs):
+    def _is_skip(self, attrs):
         d = dict(attrs)
-        combined = (d.get("class","") + " " + d.get("id","")).lower()
-        return any(w in combined for w in self.SKIP_WORDS)
+        s = (d.get("class","") + " " + d.get("id","")).lower()
+        return any(w in s for w in self.SKIP_WORDS)
 
     def handle_starttag(self, tag, attrs):
-        if tag in self.SKIP_TAGS or self._should_skip(attrs):
-            self._skip_stack += 1
+        if tag in self.SKIP_TAGS or self._is_skip(attrs): self._skip += 1
         if tag == "a":
             href = dict(attrs).get("href","")
-            if href.lower().endswith(".pdf"):
-                self._pdf_links.append(href)
+            if href.lower().endswith(".pdf"): self._pdf_links.append(href)
 
     def handle_endtag(self, tag):
-        if self._skip_stack > 0:
-            self._skip_stack -= 1
+        if self._skip > 0: self._skip -= 1
 
     def handle_data(self, data):
-        if self._skip_stack == 0:
+        if self._skip == 0:
             t = re.sub(r"\s+", " ", data).strip()
-            if len(t) > 5:
-                self._lines.append(t)
+            if len(t) > 5: self._lines.append(t)
 
     def get_text(self, max_chars=2000):
         seen, unique = set(), []
-        for line in self._lines:
-            if line not in seen:
-                seen.add(line)
-                unique.append(line)
+        for l in self._lines:
+            if l not in seen:
+                seen.add(l); unique.append(l)
         return "\n".join(unique)[:max_chars]
 
-    def get_pdf_links(self):
-        return self._pdf_links
+    def get_pdf_links(self): return self._pdf_links
 
 
 def to_abs(href):
@@ -78,91 +70,62 @@ def to_abs(href):
 
 def fetch_page(url):
     try:
-        req = urllib.request.Request(url, headers={"User-Agent":"Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=15) as res:
-            html = res.read().decode("utf-8", errors="ignore")
-        p = SmartParser()
-        p.feed(html)
+        res = requests.get(url, headers={"User-Agent":"Mozilla/5.0"}, timeout=15)
+        p = SmartParser(); p.feed(res.text)
         return p.get_text(), [to_abs(l) for l in p.get_pdf_links()[:3]]
     except Exception as e:
-        print(f"  ページ取得失敗: {e}")
-        return "", []
+        print(f"  ページ取得失敗: {e}"); return "", []
 
 
 def fetch_pdf(pdf_url):
     try:
         from pdfminer.high_level import extract_text
-        req = urllib.request.Request(pdf_url, headers={"User-Agent":"Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=20) as res:
-            data = res.read()
-        text = re.sub(r"\s+", " ", extract_text(io.BytesIO(data))).strip()
+        res = requests.get(pdf_url, headers={"User-Agent":"Mozilla/5.0"}, timeout=20)
+        text = re.sub(r"\s+", " ", extract_text(io.BytesIO(res.content))).strip()
         return text[:1000]
     except Exception as e:
-        print(f"  PDF取得失敗: {e}")
-        return ""
+        print(f"  PDF取得失敗: {e}"); return ""
 
-
-# ========== Groq AI要約 ==========
 
 def ai_summary(title, page_text, pdf_list):
-    """Groq (Llama 3.3) で要約・解説を生成"""
     if not GROQ_API_KEY:
         return page_text[:400]
 
     parts = [f"タイトル: {title}"]
-    if page_text:
-        parts.append(f"ページ本文:\n{page_text[:1500]}")
+    if page_text: parts.append(f"ページ本文:\n{page_text[:1500]}")
     for i, (url, text) in enumerate(pdf_list, 1):
-        if text:
-            parts.append(f"PDF{i}の内容:\n{text}")
-        else:
-            parts.append(f"PDF{i}: {url}（内容取得不可）")
+        parts.append(f"PDF{i}内容:\n{text}" if text else f"PDF{i}: {url}（取得不可）")
 
-    prompt = "\n\n".join(parts)
-
-    system = (
-        "あなたはひたちなか市の政治秘書のアシスタントです。"
-        "市公式サイトの更新情報を受け取り、秘書・議員候補者が素早く状況を把握できる"
-        "LINEメッセージ用の要約を作成します。"
-    )
-    user = f"""以下の情報をもとに、要約メッセージを作成してください。
+    user_prompt = f"""以下のひたちなか市公式情報をLINE通知用に要約してください。
 
 【要件】
-・何についての情報かを一文で明示
+・何についての情報か冒頭に明示
 ・重要な数値・日程・金額・対象者を必ず含める
-・市政・議会の観点から見た意義・影響を一言で補足
-・PDFがある場合はその内容も反映
-・余分なHTMLタグ・ページIDなどは含めない
-・400文字以内、箇条書き形式
+・市政・議会の観点から見た意義・影響を補足
+・400文字以内、箇条書き
 
 【情報】
-{prompt}"""
+{"　".join(parts)}"""
 
-    payload = json.dumps({
-        "model": "llama-3.3-70b-versatile",
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user",   "content": user}
-        ],
-        "max_tokens": 500,
-        "temperature": 0.2
-    }).encode()
-
-    req = urllib.request.Request(
-        "https://api.groq.com/openai/v1/chat/completions",
-        data=payload,
-        headers={"Content-Type":"application/json",
-                 "Authorization":f"Bearer {GROQ_API_KEY}"}
-    )
     try:
-        with urllib.request.urlopen(req, timeout=30) as res:
-            return json.loads(res.read())["choices"][0]["message"]["content"]
+        res = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            json={
+                "model": "llama-3.3-70b-versatile",
+                "messages": [
+                    {"role":"system","content":"あなたはひたちなか市の政治秘書のアシスタントです。"},
+                    {"role":"user","content": user_prompt}
+                ],
+                "max_tokens": 500,
+                "temperature": 0.2
+            },
+            timeout=30
+        )
+        return res.json()["choices"][0]["message"]["content"]
     except Exception as e:
-        print(f"  Groq APIエラー: {e}")
-        return page_text[:400]
+        print(f"  Groq APIエラー: {e}"); return page_text[:400]
 
-
-# ========== RSS・分類・LINE ==========
 
 def load_seen():
     return set(json.loads(STATE_FILE.read_text())) if STATE_FILE.exists() else set()
@@ -181,42 +144,30 @@ def fetch_rss():
 
 def classify(item):
     t = item["title"]
-    if any(kw in t for kw in GIKAI_KEYWORDS):   return "gikai"
+    if any(kw in t for kw in GIKAI_KEYWORDS):    return "gikai"
     if any(kw in t for kw in IMPORTANT_KEYWORDS): return "important"
     return "minor"
 
 def within_24h(pub_date_str):
     try:
         return (datetime.now(timezone.utc) - parsedate_to_datetime(pub_date_str)) <= timedelta(hours=24)
-    except:
-        return True
+    except: return True
 
 def send_line(message):
-    payload = json.dumps({"to": LINE_USER_ID,
-                          "messages": [{"type":"text","text":message[:4500]}]}).encode()
-    req = urllib.request.Request(
-        "https://api.line.me/v2/bot/message/push", data=payload,
-        headers={"Content-Type":"application/json",
-                 "Authorization":f"Bearer {LINE_TOKEN}"}
+    requests.post(
+        "https://api.line.me/v2/bot/message/push",
+        headers={"Authorization": f"Bearer {LINE_TOKEN}"},
+        json={"to": LINE_USER_ID, "messages": [{"type":"text","text":message[:4500]}]},
+        timeout=30
     )
-    urllib.request.urlopen(req, timeout=30)
-
-
-# ========== メイン ==========
 
 def process_important(item, label):
-    """重要・議会アイテムを処理：AI要約 → LINE通知"""
-    print(f"  取得中: {item['title'][:40]}")
+    print(f"  処理中: {item['title'][:50]}")
     page_text, pdf_links = fetch_page(item["link"])
     pdf_list = [(url, fetch_pdf(url)) for url in pdf_links]
-
-    summary = ai_summary(item["title"], page_text, pdf_list)
-
-    # ①概要メッセージ
+    summary  = ai_summary(item["title"], page_text, pdf_list)
     send_line(f"{label}【概要】\n{item['title']}\n\n{summary}")
-    # ②リンクメッセージ
     send_line(f"{label}\n{item['title']}\n\n{item['link']}")
-
 
 def main():
     if not LINE_TOKEN or not LINE_USER_ID:
@@ -229,15 +180,13 @@ def main():
     if not new_items:
         print(f"{datetime.now():%Y-%m-%d %H:%M} 新着なし"); return
 
-    gikai    = [i for i in new_items if classify(i) == "gikai"]
-    important= [i for i in new_items if classify(i) == "important"]
-    minor_24h= [i for i in new_items if classify(i) == "minor" and within_24h(i.get("pub_date",""))]
+    gikai     = [i for i in new_items if classify(i) == "gikai"]
+    important = [i for i in new_items if classify(i) == "important"]
+    minor_24h = [i for i in new_items if classify(i) == "minor"
+                 and within_24h(i.get("pub_date",""))]
 
-    for item in gikai:
-        process_important(item, "【議会情報】")
-
-    for item in important:
-        process_important(item, "【重要】")
+    for item in gikai:     process_important(item, "【議会情報】")
+    for item in important: process_important(item, "【重要】")
 
     if minor_24h:
         lines = [f"【ひたちなか市 更新情報 {len(minor_24h)}件（24時間以内）】"]
@@ -248,7 +197,6 @@ def main():
     for i in new_items: seen.add(i["link"])
     save_seen(seen)
     print(f"{datetime.now():%Y-%m-%d %H:%M} 完了 — 議会:{len(gikai)} 重要:{len(important)} 軽微:{len(minor_24h)}")
-
 
 if __name__ == "__main__":
     main()
