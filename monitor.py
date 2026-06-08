@@ -56,7 +56,7 @@ class SmartParser(HTMLParser):
             t = re.sub(r"\s+", " ", data).strip()
             if len(t) > 5: self._lines.append(t)
 
-    def get_text(self, max_chars=2000):
+    def get_text(self, max_chars=4000):
         seen, unique = set(), []
         for l in self._lines:
             if l not in seen:
@@ -85,7 +85,7 @@ def fetch_pdf(pdf_url):
         from pdfminer.high_level import extract_text
         res = requests.get(pdf_url, headers={"User-Agent":"Mozilla/5.0"}, timeout=20)
         text = re.sub(r"\s+", " ", extract_text(io.BytesIO(res.content))).strip()
-        return text[:1000]
+        return text[:2000]
     except Exception as e:
         print(f"  PDF取得失敗: {e}"); return ""
 
@@ -95,25 +95,28 @@ def ai_summary(title, page_text, pdf_list):
         return page_text[:400]
 
     parts = [f"タイトル: {title}"]
-    if page_text: parts.append(f"ページ本文:\n{page_text[:1500]}")
+    if page_text: parts.append(f"ページ本文:\n{page_text[:3000]}")
     for i, (url, text) in enumerate(pdf_list, 1):
         parts.append(f"PDF{i}内容:\n{text}" if text else f"PDF{i}: {url}（取得不可）")
 
-    user_prompt = f"""以下のひたちなか市公式情報をウェブサイト掲載用に要約してください。
+    user_prompt = f"""以下のひたちなか市公式情報をウェブサイト掲載用に詳しく整理してください。
 
-【厳守ルール】
+【絶対厳守ルール】
 - ※は一切使わない
 - 箇条書きは「・」のみ使用
-- 「令和」「年月日」などの日程は省略せず正確に記載
-- 金額・数値・対象者は必ず含める
-- 難しい行政用語は平易な言葉に言い換える
-- 400文字以内
-- 市政・議会の観点から見た意義・影響を補足
+- 情報を省略・要約しすぎない。元の情報に含まれる内容は漏らさず記載する
+- 施設名・団体名・人名・地名などの固有名詞は必ず正確に記載する
+- 対象者（年齢・資格・地域など）を具体的に記載する
+- 日程・期間・締切は「令和○年○月○日」のまま省略せず記載する
+- 金額・数量・定員などの数値は必ず含める
+- 申込方法・問い合わせ先（電話番号・担当課）があれば記載する
+- 行政用語は平易な言葉に言い換える
+- 800文字以内
 
 【構成】
 1行目：何についての情報か（一文）
 空行
-・重要ポイントを3〜5項目
+・詳細ポイントを5〜8項目（省略なし）
 
 【情報】
 {"　".join(parts)}"""
@@ -125,17 +128,17 @@ def ai_summary(title, page_text, pdf_list):
             json={
                 "model": "llama-3.3-70b-versatile",
                 "messages": [
-                    {"role":"system","content":"あなたはひたちなか市議会議員秘書のアシスタントです。市政情報をわかりやすく簡潔に伝えることが仕事です。"},
+                    {"role":"system","content":"あなたはひたちなか市議会議員秘書のアシスタントです。市政情報を正確かつ詳しく、固有名詞や数値を省略せずに伝えることが仕事です。"},
                     {"role":"user","content": user_prompt}
                 ],
-                "max_tokens": 600,
-                "temperature": 0.2
+                "max_tokens": 1200,
+                "temperature": 0.1
             },
             timeout=30
         )
         return res.json()["choices"][0]["message"]["content"]
     except Exception as e:
-        print(f"  Groq APIエラー: {e}"); return page_text[:400]
+        print(f"  Groq APIエラー: {e}"); return page_text[:800]
 
 
 def load_seen():
