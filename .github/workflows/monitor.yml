@@ -1,33 +1,27 @@
 name: ひたちなか市監視
-
 on:
   schedule:
     - cron: '0 23 * * *'
   workflow_dispatch:
-
 jobs:
   monitor:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
     steps:
       - uses: actions/checkout@v4
-
       - name: ライブラリインストール
         run: pip install -r requirements.txt
-
       - name: 監視スクリプト実行
         env:
           LINE_TOKEN: ${{ secrets.LINE_TOKEN }}
           LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: python3 monitor.py
-
-      - name: 既読データを保存
+      - name: 生成ファイルをコミット
         run: |
           git config user.name github-actions
           git config user.email actions@github.com
-          git add seen.json
-          git diff --staged --quiet || git commit -m "Update seen items"
+          git add seen.json docs/
+          git diff --staged --quiet || git commit -m "Update: $(date +'%Y-%m-%d %H:%M JST')"
           git push
