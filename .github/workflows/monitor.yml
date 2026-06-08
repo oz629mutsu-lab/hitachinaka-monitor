@@ -1,0 +1,29 @@
+name: ひたちなか市監視
+
+on:
+  schedule:
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 監視スクリプト実行
+        env:
+          LINE_TOKEN: ${{ secrets.LINE_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+        run: python3 monitor.py
+
+      - name: 既読データを保存
+        run: |
+          git config user.name github-actions
+          git config user.email actions@github.com
+          git add seen.json
+          git diff --staged --quiet || git commit -m "Update seen items"
+          git push
