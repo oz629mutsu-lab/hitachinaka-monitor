@@ -14,6 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: ライブラリインストール
+        run: pip install -r requirements.txt
+
       - name: 監視スクリプト実行
         env:
           LINE_TOKEN: ${{ secrets.LINE_TOKEN }}
