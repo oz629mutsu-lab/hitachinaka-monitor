@@ -21,6 +21,7 @@ jobs:
         env:
           LINE_TOKEN: ${{ secrets.LINE_TOKEN }}
           LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: python3 monitor.py
 
       - name: 既読データを保存
