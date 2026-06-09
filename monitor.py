@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""ひたちなか市ホームページ監視スクリプト v5 (GitHub Pages版)"""
+"""ひたちなか市ホームページ監視スクリプト v9 (国政・県政タブ追加)"""
 
-import json, os, urllib.request, xml.etree.ElementTree as ET, io, re, hashlib, time
+import json, os, urllib.request, xml.etree.ElementTree as ET, io, re, time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from html.parser import HTMLParser
@@ -17,7 +17,6 @@ LINE_USER_ID    = os.environ.get("LINE_USER_ID", "")
 GROQ_API_KEY    = os.environ.get("GROQ_API_KEY", "")
 STATE_FILE      = Path("seen.json")
 HTML_FILE       = Path("docs/index.html")
-ARCHIVE_DIR     = Path("docs/archive")
 
 HITACHINAKA_KEYWORDS = ["ひたちなか", "那珂湊", "勝田", "常陸那珂"]
 
@@ -29,6 +28,18 @@ IMPORTANT_KEYWORDS = [
     "緊急","警報","注意報","台風","地震","津波","避難","災害",
     "入札","新規事業","計画","整備","工事","開発","方針","施策","改正","廃止"
 ]
+
+# 国政・県政 RSS ソース
+IBARAKI_PREF_RSS = [
+    ("茨城県 報道発表",  "https://www.pref.ibaraki.jp/hodo.xml"),
+    ("茨城県 注目情報",  "https://www.pref.ibaraki.jp/chumoku.xml"),
+    ("茨城県 防災情報",  "https://www.pref.ibaraki.jp/bousai/bousai_rss.xml"),
+]
+KANTEI_RSS_URL = "https://www.kantei.go.jp/index-jnews.rdf"
+SOUMU_RSS_URL  = "https://www.soumu.go.jp/news.rdf"
+CAO_RSS_URL    = "https://www.cao.go.jp/bunken-suishin/rss/news.rdf"
+# Googleアラート: 環境変数 GOOGLE_ALERT_RSS_URLS にカンマ区切りでURLを設定
+GOOGLE_ALERT_RSS_URLS = [u.strip() for u in os.environ.get("GOOGLE_ALERT_RSS_URLS","").split(",") if u.strip()]
 
 
 class SmartParser(HTMLParser):
@@ -94,8 +105,33 @@ def fetch_pdf(pdf_url):
         print(f"  PDF取得失敗: {e}"); return ""
 
 
+def groq_call(system, user, max_tokens=900, label=""):
+    for attempt in range(5):
+        try:
+            res = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+                json={"model":"llama-3.3-70b-versatile",
+                      "messages":[{"role":"system","content":system},
+                                   {"role":"user","content":user}],
+                      "max_tokens":max_tokens, "temperature":0.1},
+                timeout=40
+            )
+            data = res.json()
+            if "choices" in data:
+                return data["choices"][0]["message"]["content"]
+            err = data.get("error",{}).get("message", str(data))
+            wait = re.search(r"try again in ([\d.]+)s", err)
+            wait_sec = float(wait.group(1)) + 3 if wait else 30
+            print(f"  Groq待機{label}(試行{attempt+1}): {wait_sec:.0f}秒")
+            time.sleep(wait_sec)
+        except Exception as e:
+            print(f"  Groq例外{label}(試行{attempt+1}): {e}"); time.sleep(15)
+    return ""
+
+
 def ai_batch_summary(items_data):
-    """複数記事をまとめて1回のAPIコールで要約する（items_data: [{title, page_text, pdf_list}]）"""
+    """複数記事を1回のAPIコールでまとめて要約"""
     if not GROQ_API_KEY:
         return {i: d["page_text"][:400] for i, d in enumerate(items_data)}
 
@@ -133,20 +169,11 @@ def ai_batch_summary(items_data):
     if not result:
         return {i: d["page_text"][:400] for i, d in enumerate(items_data)}
 
-    # ==N== セクションを分割して返す
     summaries = {}
     for idx in range(len(items_data)):
         m = re.search(rf"=={idx}==\s*(.*?)(?===\d+==|$)", result, re.DOTALL)
         summaries[idx] = m.group(1).strip() if m else items_data[idx]["page_text"][:400]
     return summaries
-
-def ai_summary(title, page_text, pdf_list):
-    """単体記事用（後方互換のため残す）"""
-    if not GROQ_API_KEY:
-        return page_text[:400]
-    result = ai_batch_summary([{"title": title, "page_text": page_text, "pdf_list": pdf_list}])
-    return result.get(0, page_text[:400])
-
 
 
 def load_seen():
@@ -211,30 +238,6 @@ def fetch_og_description(url):
     except Exception as e:
         print(f"  og:description取得失敗: {e}"); return ""
 
-def groq_call(system, user, max_tokens=900, label=""):
-    for attempt in range(5):
-        try:
-            res = requests.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
-                json={"model":"llama-3.3-70b-versatile",
-                      "messages":[{"role":"system","content":system},
-                                   {"role":"user","content":user}],
-                      "max_tokens":max_tokens, "temperature":0.1},
-                timeout=40
-            )
-            data = res.json()
-            if "choices" in data:
-                return data["choices"][0]["message"]["content"]
-            err = data.get("error",{}).get("message", str(data))
-            wait = re.search(r"try again in ([\d.]+)s", err)
-            wait_sec = float(wait.group(1)) + 3 if wait else 30
-            print(f"  Groq待機{label}(試行{attempt+1}): {wait_sec:.0f}秒")
-            time.sleep(wait_sec)
-        except Exception as e:
-            print(f"  Groq例外{label}(試行{attempt+1}): {e}"); time.sleep(15)
-    return ""
-
 def ai_summary_ibaraki(title, description):
     if not GROQ_API_KEY or not description:
         return description or "（本文取得不可）"
@@ -287,6 +290,71 @@ def ai_digest_ibaraki(articles_with_desc):
     return result or ""
 
 
+# ===== 国政・県政 RSS =====
+
+def fetch_generic_rss(url, max_items=15):
+    """汎用RSSフェッチ。Shift_JIS等の非UTF-8エンコーディングに対応"""
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=30) as res:
+            raw = res.read()
+        # XML宣言のエンコーディングを検出してUTF-8に変換
+        enc_m = re.search(rb'encoding=["\']([^"\']+)["\']', raw[:300])
+        if enc_m:
+            enc = enc_m.group(1).decode('ascii', errors='replace')
+            if enc.lower() not in ('utf-8', 'utf8'):
+                decoded = raw.decode(enc, errors='replace')
+                raw = re.sub(r'encoding=["\'][^"\']+["\']', 'encoding="utf-8"', decoded).encode('utf-8')
+        root = ET.fromstring(raw)
+        items = []
+        for i in root.findall(".//item")[:max_items]:
+            desc = re.sub(r'<[^>]+>', '', (i.findtext("description") or "")).strip()[:300]
+            items.append({
+                "title":       (i.findtext("title") or "").strip(),
+                "link":        (i.findtext("link")  or "").strip(),
+                "pub_date":    (i.findtext("pubDate") or "").strip(),
+                "description": desc,
+            })
+        return [i for i in items if i["title"]]
+    except Exception as e:
+        print(f"  RSS取得失敗 ({url[:60]}): {e}")
+        return []
+
+
+def ai_digest_national(sources):
+    """国政・県政ソースの一括ダイジェスト
+    sources: [{name, items:[{title,link,description}]}]
+    """
+    if not GROQ_API_KEY:
+        return ""
+    blocks = []
+    for s in sources:
+        if not s["items"]: continue
+        lines = "\n".join(
+            f"・{i['title']}" + (f"（{i['description'][:100]}）" if i.get('description') else "")
+            for i in s["items"][:8]
+        )
+        blocks.append(f"【{s['name']}】\n{lines}")
+    if not blocks:
+        return ""
+    prompt = f"""以下の国政・県政ニュースを地方議員候補者の視点で整理してください。
+
+【ルール】
+- 箇条書きは「・」のみ、※不使用
+- 地方自治・住民生活・財政・選挙・防災に関するトピックを優先
+- 各情報源について必ず触れる
+- 固有名詞・数値は省略せず記載
+- 700文字以内
+
+【情報】
+{"".join(chr(10)*2 + b for b in blocks)}"""
+
+    return groq_call(
+        "国政・県政情報を地方議員候補者向けにまとめるアシスタントです。固有名詞・数値を省略しません。",
+        prompt, max_tokens=1000, label="[国政県政]"
+    )
+
+
 # ===== HTML生成 =====
 
 def esc(s):
@@ -318,7 +386,8 @@ def summary_to_html(text):
 
 
 def build_html(gikai_cards, important_cards, minor_items, generated_at,
-               ibaraki_local_cards=None, ibaraki_digest="", ibaraki_all=None):
+               ibaraki_local_cards=None, ibaraki_digest="", ibaraki_all=None,
+               national_digest="", national_sources=None):
     jst = generated_at + timedelta(hours=9)
     date_str = jst.strftime("%Y年%m月%d日 %H:%M")
 
@@ -355,14 +424,39 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
         )
         return digest_block + f'<table><tbody>{rows}</tbody></table>'
 
+    def national_section_html():
+        if not national_sources:
+            return '<p class="empty">本日の国政・県政情報はありません</p>'
+        html = ""
+        # AIダイジェストカード
+        if national_digest:
+            html += f'<div class="card" style="border-left:4px solid #4527A0"><div class="card-summary">{summary_to_html(national_digest)}</div></div>'
+        # ソース別リスト
+        source_icons = {
+            "茨城県 報道発表": "🌿", "茨城県 注目情報": "📌", "茨城県 防災情報": "🚨",
+            "首相官邸": "🏛️", "総務省": "📋", "内閣府 地方分権改革": "🏢",
+        }
+        for s in national_sources:
+            if not s["items"]: continue
+            icon = source_icons.get(s["name"], "🔍")
+            html += f'<h3 class="src-heading">{icon} {esc(s["name"])}</h3>'
+            rows = "".join(
+                f'<tr><td><a href="{esc(i["link"])}" target="_blank">{esc(i["title"])}</a>'
+                + (f'<div class="item-desc">{esc(i["description"])}</div>' if i.get("description") else "")
+                + '</td></tr>\n'
+                for i in s["items"]
+            )
+            html += f'<table><tbody>{rows}</tbody></table>'
+        return html or '<p class="empty">本日の国政・県政情報はありません</p>'
+
     return f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ひたちなか市・茨城新聞 最新情報 | {date_str}</title>
+<title>ひたちなか市・茨城新聞・国政県政 最新情報 | {date_str}</title>
 <style>
-:root{{--blue:#1565C0;--red:#C62828;--amber:#E65100;--gray:#546E7A;--green:#1B5E20;--bg:#F8F9FA}}
+:root{{--blue:#1565C0;--red:#C62828;--amber:#E65100;--gray:#546E7A;--green:#1B5E20;--purple:#4527A0;--bg:#F8F9FA}}
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{font-family:"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;background:var(--bg);color:#212121;line-height:1.7;font-size:15px}}
 header{{background:var(--blue);color:#fff;padding:16px 20px}}
@@ -370,15 +464,18 @@ header h1{{font-size:18px;font-weight:700}}
 header .updated{{font-size:12px;opacity:.85;margin-top:4px}}
 header a{{color:#fff}}
 .tab-bar{{display:flex;background:#fff;border-bottom:2px solid #e0e0e0;position:sticky;top:0;z-index:10}}
-.tab-btn{{flex:1;padding:12px 8px;font-size:14px;font-weight:700;border:none;background:none;cursor:pointer;color:#888;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}}
+.tab-btn{{flex:1;padding:12px 4px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;color:#888;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}}
 .tab-btn.active{{color:var(--blue);border-bottom-color:var(--blue)}}
-.tab-btn:first-child.active{{color:var(--blue);border-bottom-color:var(--blue)}}
-.tab-btn:last-child.active{{color:var(--green);border-bottom-color:var(--green)}}
+.tab-btn:nth-child(2).active{{color:var(--green);border-bottom-color:var(--green)}}
+.tab-btn:nth-child(3).active{{color:var(--purple);border-bottom-color:var(--purple)}}
 .tab-content{{display:none}}
 .tab-content.active{{display:block}}
 .container{{max-width:860px;margin:0 auto;padding:16px}}
 h2{{font-size:15px;font-weight:700;padding:8px 0 6px;border-bottom:2px solid currentColor;margin:20px 0 10px}}
-h2.gikai{{color:#C62828}} h2.important{{color:#E65100}} h2.minor{{color:#546E7A}} h2.ibaraki{{color:#1B5E20}} h2.ibaraki-all{{color:#2E7D32}}
+h3.src-heading{{font-size:14px;font-weight:700;margin:16px 0 8px;color:#4527A0}}
+h2.gikai{{color:#C62828}} h2.important{{color:#E65100}} h2.minor{{color:#546E7A}}
+h2.ibaraki{{color:#1B5E20}} h2.ibaraki-all{{color:#2E7D32}}
+h2.national{{color:#4527A0}}
 .card{{background:#fff;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}}
 .card-title{{font-weight:700;font-size:15px;margin-bottom:8px}}
 .card-title a{{color:#1565C0;text-decoration:none}}
@@ -389,23 +486,25 @@ h2.gikai{{color:#C62828}} h2.important{{color:#E65100}} h2.minor{{color:#546E7A}
 .card-meta{{display:flex;align-items:center;gap:12px;margin-top:10px}}
 .tag{{color:#fff;font-size:11px;padding:2px 8px;border-radius:12px}}
 .src-link{{font-size:13px;color:#1565C0}}
-table{{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08)}}
+table{{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px}}
 td{{padding:10px 14px;border-bottom:1px solid #eee;font-size:14px}}
 td a{{color:#1565C0;text-decoration:none}}
 td a:hover{{text-decoration:underline}}
+.item-desc{{font-size:12px;color:#666;margin-top:3px}}
 .empty{{color:#888;font-size:14px;padding:8px 0}}
 footer{{text-align:center;font-size:12px;color:#888;padding:24px;margin-top:16px}}
 </style>
 </head>
 <body>
 <header>
-  <h1>ひたちなか市・茨城新聞 最新情報</h1>
+  <h1>ひたちなか市・茨城新聞・国政県政 最新情報</h1>
   <div class="updated">最終更新: {date_str} JST</div>
 </header>
 
 <div class="tab-bar">
   <button class="tab-btn active" onclick="switchTab('hitachinaka',this)">🏛️ ひたちなか市</button>
   <button class="tab-btn" onclick="switchTab('ibaraki',this)">🗞️ 茨城新聞</button>
+  <button class="tab-btn" onclick="switchTab('national',this)">🏢 国政・県政</button>
 </div>
 
 <div id="hitachinaka" class="tab-content active">
@@ -431,7 +530,14 @@ footer{{text-align:center;font-size:12px;color:#888;padding:24px;margin-top:16px
 </div>
 </div>
 
-<footer>自動生成 | <a href="https://www.city.hitachinaka.lg.jp/" target="_blank">ひたちなか市公式</a> | <a href="https://ibarakinews.jp/" target="_blank">茨城新聞</a></footer>
+<div id="national" class="tab-content">
+<div class="container">
+<h2 class="national">🏢 国政・県政 最新情報</h2>
+{national_section_html()}
+</div>
+</div>
+
+<footer>自動生成 | <a href="https://www.city.hitachinaka.lg.jp/" target="_blank">ひたちなか市公式</a> | <a href="https://ibarakinews.jp/" target="_blank">茨城新聞</a> | <a href="https://www.pref.ibaraki.jp/" target="_blank">茨城県</a> | <a href="https://www.kantei.go.jp/" target="_blank">首相官邸</a> | <a href="https://www.soumu.go.jp/" target="_blank">総務省</a> | <a href="https://www.cao.go.jp/bunken-suishin/" target="_blank">内閣府 地方分権</a></footer>
 
 <script>
 function switchTab(id, btn) {{
@@ -446,7 +552,6 @@ function switchTab(id, btn) {{
 
 
 def process_items_batch(items, label):
-    """ひたちなか市記事を全件まとめてページ取得→1回のAPIコールで要約"""
     if not items:
         return []
     print(f"  {label} {len(items)}件 ページ取得中...")
@@ -475,32 +580,28 @@ def main():
         print("ERROR: LINE環境変数未設定"); return
 
     HTML_FILE.parent.mkdir(parents=True, exist_ok=True)
-
-    seen  = load_seen()
-    now   = datetime.now(timezone.utc)
+    seen = load_seen()
+    now  = datetime.now(timezone.utc)
 
     # ===== ひたちなか市公式サイト =====
     items     = fetch_rss()
     new_items = [i for i in items if i["link"] not in seen]
-
     gikai     = [i for i in new_items if classify(i) == "gikai"]
     important = [i for i in new_items if classify(i) == "important"]
     minor_24h = [i for i in new_items if classify(i) == "minor" and within_24h(i.get("pub_date",""))]
 
-    # 議会＋重要をまとめて1回のAPIコールで処理
-    all_priority = gikai + important
-    all_cards = process_items_batch(all_priority, "ひたちなか市")
+    all_priority    = gikai + important
+    all_cards       = process_items_batch(all_priority, "ひたちなか市")
     gikai_cards     = all_cards[:len(gikai)]
     important_cards = all_cards[len(gikai):]
 
     # ===== 茨城新聞 =====
     print("茨城新聞を取得中...")
-    ib_items     = fetch_ibaraki_rss()
-    ib_new       = [i for i in ib_items if i["link"] not in seen and within_24h(i.get("pub_date",""))]
-    ib_local     = [i for i in ib_new if any(kw in i["title"] for kw in HITACHINAKA_KEYWORDS)]
-    ib_other     = [i for i in ib_new if i not in ib_local]
+    ib_items = fetch_ibaraki_rss()
+    ib_new   = [i for i in ib_items if i["link"] not in seen and within_24h(i.get("pub_date",""))]
+    ib_local = [i for i in ib_new if any(kw in i["title"] for kw in HITACHINAKA_KEYWORDS)]
+    ib_other = [i for i in ib_new if i not in ib_local]
 
-    # ひたちなか関連：og:description取得 + 個別AI要約
     ib_local_cards = []
     for item in ib_local:
         time.sleep(5)
@@ -512,7 +613,6 @@ def main():
             "summary": summary, "summary_html": summary_to_html(summary), "label": "茨城新聞"
         })
 
-    # 全体ニュース：og:descriptionを取得してからまとめてAI要約
     ib_digest = ""
     if ib_other:
         print(f"  茨城新聞: og:description取得中 ({len(ib_other)}件)...")
@@ -523,17 +623,58 @@ def main():
         print(f"  茨城新聞ダイジェスト: {len(ib_other)}件")
         ib_digest = ai_digest_ibaraki(ib_other)
 
-    # HTMLを生成（更新なしでも茨城新聞があれば生成）
-    has_updates = bool(gikai or important or minor_24h or ib_local or ib_other)
+    # ===== 国政・県政 =====
+    print("国政・県政 RSS取得中...")
+    national_sources = []
+
+    # 茨城県（3フィード）
+    for name, url in IBARAKI_PREF_RSS:
+        items_feed = fetch_generic_rss(url, max_items=10)
+        national_sources.append({"name": name, "items": items_feed})
+        print(f"  {name}: {len(items_feed)}件")
+
+    # 首相官邸
+    kantei_items = fetch_generic_rss(KANTEI_RSS_URL, max_items=10)
+    national_sources.append({"name": "首相官邸", "items": kantei_items})
+    print(f"  首相官邸: {len(kantei_items)}件")
+
+    # 総務省
+    soumu_items = fetch_generic_rss(SOUMU_RSS_URL, max_items=10)
+    national_sources.append({"name": "総務省", "items": soumu_items})
+    print(f"  総務省: {len(soumu_items)}件")
+
+    # 内閣府 地方分権改革
+    cao_items = fetch_generic_rss(CAO_RSS_URL, max_items=10)
+    national_sources.append({"name": "内閣府 地方分権改革", "items": cao_items})
+    print(f"  内閣府 地方分権改革: {len(cao_items)}件")
+
+    # Googleアラート（設定済みの場合のみ）
+    for alert_url in GOOGLE_ALERT_RSS_URLS:
+        alert_items = fetch_generic_rss(alert_url, max_items=10)
+        national_sources.append({"name": "Googleアラート", "items": alert_items})
+        print(f"  Googleアラート: {len(alert_items)}件")
+
+    # 国政・県政の一括AIダイジェスト
+    has_national = any(s["items"] for s in national_sources)
+    national_digest = ""
+    if has_national:
+        time.sleep(5)
+        print("  国政・県政 AIダイジェスト生成中...")
+        national_digest = ai_digest_national(national_sources)
+
+    # ===== HTML生成 =====
+    has_updates = bool(gikai or important or minor_24h or ib_local or ib_other or has_national)
     if not has_updates:
         print(f"{now:%Y-%m-%d %H:%M} 新着なし"); return
 
-    html = build_html(gikai_cards, important_cards, minor_24h, now,
-                      ib_local_cards, ib_digest, ib_other)
+    html = build_html(
+        gikai_cards, important_cards, minor_24h, now,
+        ib_local_cards, ib_digest, ib_other,
+        national_digest, national_sources
+    )
     HTML_FILE.write_text(html, encoding="utf-8")
     print(f"✓ {HTML_FILE} 生成完了")
 
-    # 既読登録
     for i in new_items: seen.add(i["link"])
     for i in ib_new:    seen.add(i["link"])
     save_seen(seen)
@@ -545,7 +686,10 @@ def main():
     if minor_24h:     counts.append(f"市その他{len(minor_24h)}件")
     if ib_local:      counts.append(f"茨城新聞(ひたちなか){len(ib_local)}件")
     if ib_other:      counts.append(f"茨城新聞{len(ib_other)}件")
-    summary_line = "・".join(counts)
+    if has_national:
+        total_nat = sum(len(s["items"]) for s in national_sources)
+        counts.append(f"国政県政{total_nat}件")
+    summary_line = "・".join(counts) if counts else "更新あり"
 
     # 8:05 JST まで待機
     jst_now = datetime.now(timezone.utc) + timedelta(hours=9)
@@ -556,10 +700,10 @@ def main():
         time.sleep(wait_sec)
 
     send_time = (datetime.now(timezone.utc) + timedelta(hours=9)).strftime("%m/%d %H:%M")
-    msg = f"【ひたちなか市・茨城新聞 更新情報】{send_time}\n{summary_line}\n\n{PAGES_URL}"
+    msg = f"【ひたちなか市・茨城新聞・国政県政 更新情報】{send_time}\n{summary_line}\n\n{PAGES_URL}"
     send_line(msg)
     print(f"✓ LINE送信: {msg}")
-    print(f"{now:%Y-%m-%d %H:%M} 完了 — 議会:{len(gikai)} 重要:{len(important)} 軽微:{len(minor_24h)} 茨城新聞:{len(ib_new)}")
+    print(f"{now:%Y-%m-%d %H:%M} 完了 — 議会:{len(gikai)} 重要:{len(important)} 軽微:{len(minor_24h)} 茨城新聞:{len(ib_new)} 国政県政:{sum(len(s['items']) for s in national_sources)}")
 
 
 if __name__ == "__main__":
