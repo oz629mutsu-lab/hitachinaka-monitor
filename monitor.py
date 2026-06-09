@@ -218,82 +218,80 @@ def fetch_og_description(url):
     except Exception as e:
         print(f"  og:description取得失敗: {e}"); return ""
 
+def groq_call(system, user, max_tokens=900, label=""):
+    for attempt in range(5):
+        try:
+            res = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+                json={"model":"llama-3.3-70b-versatile",
+                      "messages":[{"role":"system","content":system},
+                                   {"role":"user","content":user}],
+                      "max_tokens":max_tokens, "temperature":0.1},
+                timeout=40
+            )
+            data = res.json()
+            if "choices" in data:
+                return data["choices"][0]["message"]["content"]
+            err = data.get("error",{}).get("message", str(data))
+            wait = re.search(r"try again in ([\d.]+)s", err)
+            wait_sec = float(wait.group(1)) + 3 if wait else 30
+            print(f"  Groq待機{label}(試行{attempt+1}): {wait_sec:.0f}秒")
+            time.sleep(wait_sec)
+        except Exception as e:
+            print(f"  Groq例外{label}(試行{attempt+1}): {e}"); time.sleep(15)
+    return ""
+
 def ai_summary_ibaraki(title, description):
     if not GROQ_API_KEY or not description:
         return description or "（本文取得不可）"
-    prompt = f"""以下の茨城新聞記事をひたちなか市議会議員候補者の視点で簡潔に整理してください。
+    prompt = f"""以下の茨城新聞記事を地方議員候補者向けに詳しく整理してください。
 
 【厳守ルール】
 - ※は一切使わない / 箇条書きは「・」のみ
-- 固有名詞・地名・人名・数値は省略せず記載
-- 茨城県政・地域行政への影響があれば補足
-- 300文字以内
+- 人名・地名・団体名・施設名などの固有名詞は省略せず正確に記載
+- 数値・金額・日程は必ず含める
+- 茨城県政・ひたちなか市政への影響・関連性があれば必ず補足
+- 600文字以内
 
 【構成】
 1行目：何についての記事か（一文）
 空行
-・重要ポイント2〜4項目
+・詳細ポイントを4〜6項目（省略なし）
 
 タイトル: {title}
-記事冒頭: {description[:600]}"""
+記事冒頭: {description[:800]}"""
 
-    for attempt in range(5):
-        try:
-            res = requests.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
-                json={"model":"llama-3.3-70b-versatile",
-                      "messages":[{"role":"system","content":"茨城新聞記事を地方議員候補者向けに要約するアシスタントです。"},
-                                   {"role":"user","content":prompt}],
-                      "max_tokens":600, "temperature":0.1},
-                timeout=40
-            )
-            data = res.json()
-            if "choices" in data:
-                return data["choices"][0]["message"]["content"]
-            err = data.get("error",{}).get("message", str(data))
-            wait = re.search(r"try again in ([\d.]+)s", err)
-            wait_sec = float(wait.group(1)) + 3 if wait else 30
-            print(f"  Groq待機(試行{attempt+1}): {wait_sec:.0f}秒")
-            time.sleep(wait_sec)
-        except Exception as e:
-            print(f"  Groq例外(試行{attempt+1}): {e}"); time.sleep(15)
-    return description[:300]
+    result = groq_call(
+        "茨城新聞記事を地方議員候補者向けに詳しく整理するアシスタントです。固有名詞・数値を省略せず記載します。",
+        prompt, max_tokens=900, label=f"[{title[:20]}]"
+    )
+    return result or description[:400]
 
-def ai_digest_ibaraki(articles):
-    if not GROQ_API_KEY or not articles:
+def ai_digest_ibaraki(articles_with_desc):
+    if not GROQ_API_KEY or not articles_with_desc:
         return ""
-    lines = "\n".join([f"・{a['title']}" for a in articles])
-    prompt = f"""以下の茨城新聞の本日のニュース見出し一覧を、地方議員候補者の視点で3〜5行にまとめてください。
-県政・社会・経済の動向として押さえておくべきポイントを中心に。
+    lines = "\n".join([
+        f"【{a['title']}】\n{a.get('desc','')[:300]}" if a.get('desc') else f"【{a['title']}】"
+        for a in articles_with_desc
+    ])
+    prompt = f"""以下の茨城新聞の本日のニュース記事を、地方議員候補者の視点で詳しくまとめてください。
 
-【見出し一覧】
-{lines}
+【ルール】
+- 箇条書きは「・」のみ / ※不使用
+- 人名・地名・数値は省略せず記載
+- 県政・社会・経済の動向として重要なポイントを網羅
+- 各記事について1〜2行で触れる（省略なし）
+- 600文字以内
 
-【ルール】箇条書きは「・」のみ / ※不使用 / 300文字以内"""
+【記事一覧】
+{lines}"""
 
-    for attempt in range(5):
-        try:
-            res = requests.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
-                json={"model":"llama-3.3-70b-versatile",
-                      "messages":[{"role":"system","content":"茨城新聞のニュースダイジェストを作成するアシスタントです。"},
-                                   {"role":"user","content":prompt}],
-                      "max_tokens":500, "temperature":0.1},
-                timeout=40
-            )
-            data = res.json()
-            if "choices" in data:
-                return data["choices"][0]["message"]["content"]
-            err = data.get("error",{}).get("message", str(data))
-            wait = re.search(r"try again in ([\d.]+)s", err)
-            wait_sec = float(wait.group(1)) + 3 if wait else 30
-            print(f"  Groqダイジェスト待機(試行{attempt+1}): {wait_sec:.0f}秒")
-            time.sleep(wait_sec)
-        except Exception as e:
-            print(f"  Groqダイジェスト例外(試行{attempt+1}): {e}"); time.sleep(15)
-    return ""
+    result = groq_call(
+        "茨城新聞のニュースを地方議員候補者向けに詳しくまとめるアシスタントです。",
+        prompt, max_tokens=900, label="[ダイジェスト]"
+    )
+    return result or ""
 
 
 # ===== HTML生成 =====
@@ -369,17 +367,25 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ひたちなか市 最新情報 | {date_str}</title>
+<title>ひたちなか市・茨城新聞 最新情報 | {date_str}</title>
 <style>
-:root{{--blue:#1565C0;--red:#C62828;--amber:#E65100;--gray:#546E7A;--bg:#F8F9FA}}
+:root{{--blue:#1565C0;--red:#C62828;--amber:#E65100;--gray:#546E7A;--green:#1B5E20;--bg:#F8F9FA}}
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{font-family:"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;background:var(--bg);color:#212121;line-height:1.7;font-size:15px}}
 header{{background:var(--blue);color:#fff;padding:16px 20px}}
 header h1{{font-size:18px;font-weight:700}}
 header .updated{{font-size:12px;opacity:.85;margin-top:4px}}
+header a{{color:#fff}}
+.tab-bar{{display:flex;background:#fff;border-bottom:2px solid #e0e0e0;position:sticky;top:0;z-index:10}}
+.tab-btn{{flex:1;padding:12px 8px;font-size:14px;font-weight:700;border:none;background:none;cursor:pointer;color:#888;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}}
+.tab-btn.active{{color:var(--blue);border-bottom-color:var(--blue)}}
+.tab-btn:first-child.active{{color:var(--blue);border-bottom-color:var(--blue)}}
+.tab-btn:last-child.active{{color:var(--green);border-bottom-color:var(--green)}}
+.tab-content{{display:none}}
+.tab-content.active{{display:block}}
 .container{{max-width:860px;margin:0 auto;padding:16px}}
-h2{{font-size:16px;font-weight:700;padding:10px 0 8px;border-bottom:2px solid currentColor;margin:24px 0 12px}}
-h2.gikai{{color:#C62828}} h2.important{{color:#E65100}} h2.minor{{color:#546E7A}} h2.ibaraki{{color:#1B5E20}} h2.ibaraki-all{{color:#33691E}}
+h2{{font-size:15px;font-weight:700;padding:8px 0 6px;border-bottom:2px solid currentColor;margin:20px 0 10px}}
+h2.gikai{{color:#C62828}} h2.important{{color:#E65100}} h2.minor{{color:#546E7A}} h2.ibaraki{{color:#1B5E20}} h2.ibaraki-all{{color:#2E7D32}}
 .card{{background:#fff;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}}
 .card-title{{font-weight:700;font-size:15px;margin-bottom:8px}}
 .card-title a{{color:#1565C0;text-decoration:none}}
@@ -400,11 +406,17 @@ footer{{text-align:center;font-size:12px;color:#888;padding:24px;margin-top:16px
 </head>
 <body>
 <header>
-  <h1>ひたちなか市・茨城県 最新情報</h1>
-  <div class="updated">最終更新: {date_str} JST | <a href="https://www.city.hitachinaka.lg.jp/" style="color:#fff" target="_blank">ひたちなか市公式</a> | <a href="https://ibarakinews.jp/" style="color:#fff" target="_blank">茨城新聞</a></div>
+  <h1>ひたちなか市・茨城新聞 最新情報</h1>
+  <div class="updated">最終更新: {date_str} JST</div>
 </header>
-<div class="container">
 
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('hitachinaka',this)">🏛️ ひたちなか市</button>
+  <button class="tab-btn" onclick="switchTab('ibaraki',this)">🗞️ 茨城新聞</button>
+</div>
+
+<div id="hitachinaka" class="tab-content active">
+<div class="container">
 <h2 class="gikai">🔴 議会情報</h2>
 {cards_html(gikai_cards, "#C62828", "議会")}
 
@@ -413,15 +425,29 @@ footer{{text-align:center;font-size:12px;color:#888;padding:24px;margin-top:16px
 
 <h2 class="minor">⚪ その他の更新情報（24時間以内）</h2>
 {minor_html()}
+</div>
+</div>
 
-<h2 class="ibaraki">🗞️ 茨城新聞 ひたちなか関連</h2>
+<div id="ibaraki" class="tab-content">
+<div class="container">
+<h2 class="ibaraki">📍 ひたちなか関連記事</h2>
 {cards_html(ibaraki_local_cards or [], "#1B5E20", "茨城新聞")}
 
-<h2 class="ibaraki-all">📰 茨城新聞 本日のニュース</h2>
+<h2 class="ibaraki-all">📰 本日の茨城ニュース</h2>
 {ibaraki_digest_html(ibaraki_digest, ibaraki_all or [])}
-
 </div>
-<footer>自動生成 | oz629mutsu-lab / hitachinaka-monitor</footer>
+</div>
+
+<footer>自動生成 | <a href="https://www.city.hitachinaka.lg.jp/" target="_blank">ひたちなか市公式</a> | <a href="https://ibarakinews.jp/" target="_blank">茨城新聞</a></footer>
+
+<script>
+function switchTab(id, btn) {{
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}}
+</script>
 </body>
 </html>"""
 
@@ -485,9 +511,13 @@ def main():
             "summary": summary, "summary_html": summary_to_html(summary), "label": "茨城新聞"
         })
 
-    # 全体ニュース：見出し一覧をまとめてAI要約（1回）
+    # 全体ニュース：og:descriptionを取得してからまとめてAI要約
     ib_digest = ""
     if ib_other:
+        print(f"  茨城新聞: og:description取得中 ({len(ib_other)}件)...")
+        for item in ib_other:
+            item["desc"] = fetch_og_description(item["link"])
+            time.sleep(1)
         time.sleep(5)
         print(f"  茨城新聞ダイジェスト: {len(ib_other)}件")
         ib_digest = ai_digest_ibaraki(ib_other)
