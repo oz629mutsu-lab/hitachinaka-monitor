@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ひたちなか市・茨城新聞 最新情報 | 2026年06月09日 09:38</title>
+<title>ひたちなか市・茨城新聞・国政県政 最新情報 | 2026年06月09日 19:48</title>
 <style>
-:root{--blue:#1565C0;--red:#C62828;--amber:#E65100;--gray:#546E7A;--green:#1B5E20;--bg:#F8F9FA}
+:root{--blue:#1565C0;--red:#C62828;--amber:#E65100;--gray:#546E7A;--green:#1B5E20;--purple:#4527A0;--bg:#F8F9FA}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;background:var(--bg);color:#212121;line-height:1.7;font-size:15px}
 header{background:var(--blue);color:#fff;padding:16px 20px}
@@ -13,15 +13,18 @@ header h1{font-size:18px;font-weight:700}
 header .updated{font-size:12px;opacity:.85;margin-top:4px}
 header a{color:#fff}
 .tab-bar{display:flex;background:#fff;border-bottom:2px solid #e0e0e0;position:sticky;top:0;z-index:10}
-.tab-btn{flex:1;padding:12px 8px;font-size:14px;font-weight:700;border:none;background:none;cursor:pointer;color:#888;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab-btn{flex:1;padding:12px 4px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;color:#888;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
 .tab-btn.active{color:var(--blue);border-bottom-color:var(--blue)}
-.tab-btn:first-child.active{color:var(--blue);border-bottom-color:var(--blue)}
-.tab-btn:last-child.active{color:var(--green);border-bottom-color:var(--green)}
+.tab-btn:nth-child(2).active{color:var(--green);border-bottom-color:var(--green)}
+.tab-btn:nth-child(3).active{color:var(--purple);border-bottom-color:var(--purple)}
 .tab-content{display:none}
 .tab-content.active{display:block}
 .container{max-width:860px;margin:0 auto;padding:16px}
 h2{font-size:15px;font-weight:700;padding:8px 0 6px;border-bottom:2px solid currentColor;margin:20px 0 10px}
-h2.gikai{color:#C62828} h2.important{color:#E65100} h2.minor{color:#546E7A} h2.ibaraki{color:#1B5E20} h2.ibaraki-all{color:#2E7D32}
+h3.src-heading{font-size:14px;font-weight:700;margin:16px 0 8px;color:#4527A0}
+h2.gikai{color:#C62828} h2.important{color:#E65100} h2.minor{color:#546E7A}
+h2.ibaraki{color:#1B5E20} h2.ibaraki-all{color:#2E7D32}
+h2.national{color:#4527A0}
 .card{background:#fff;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .card-title{font-weight:700;font-size:15px;margin-bottom:8px}
 .card-title a{color:#1565C0;text-decoration:none}
@@ -32,23 +35,25 @@ h2.gikai{color:#C62828} h2.important{color:#E65100} h2.minor{color:#546E7A} h2.i
 .card-meta{display:flex;align-items:center;gap:12px;margin-top:10px}
 .tag{color:#fff;font-size:11px;padding:2px 8px;border-radius:12px}
 .src-link{font-size:13px;color:#1565C0}
-table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px}
 td{padding:10px 14px;border-bottom:1px solid #eee;font-size:14px}
 td a{color:#1565C0;text-decoration:none}
 td a:hover{text-decoration:underline}
+.item-desc{font-size:12px;color:#666;margin-top:3px}
 .empty{color:#888;font-size:14px;padding:8px 0}
 footer{text-align:center;font-size:12px;color:#888;padding:24px;margin-top:16px}
 </style>
 </head>
 <body>
 <header>
-  <h1>ひたちなか市・茨城新聞 最新情報</h1>
-  <div class="updated">最終更新: 2026年06月09日 09:38 JST</div>
+  <h1>ひたちなか市・茨城新聞・国政県政 最新情報</h1>
+  <div class="updated">最終更新: 2026年06月09日 19:48 JST</div>
 </header>
 
 <div class="tab-bar">
   <button class="tab-btn active" onclick="switchTab('hitachinaka',this)">🏛️ ひたちなか市</button>
   <button class="tab-btn" onclick="switchTab('ibaraki',this)">🗞️ 茨城新聞</button>
+  <button class="tab-btn" onclick="switchTab('national',this)">🏢 国政・県政</button>
 </div>
 
 <div id="hitachinaka" class="tab-content active">
@@ -57,234 +62,15 @@ footer{text-align:center;font-size:12px;color:#888;padding:24px;margin-top:16px}
 <p class="empty">本日の議会はありません</p>
 
 <h2 class="important">🟡 重要なお知らせ</h2>
-
-<div class="card" style="border-left:4px solid #E65100">
-  <div class="card-title"><a href="https://www.city.hitachinaka.lg.jp/smile_smile/mokuteki/1005178/1005273/1015688.html" target="_blank">津波注意報に伴う那珂湊児童館からのお知らせ</a></div>
-  <div class="card-summary"><p>やさしい日本語</p>
-<p>ふりがなをけす</p>
-<p>non-Japanese</p>
-<p>Select Language</p>
-<p>English</p>
-<p>中文（简体）</p>
-<p>中文（繁体）</p>
-<p>Tiếng Việt</p>
-<p>Portuguêsês</p>
-<p>Español</p>
-<p>Deutsch</p>
-<p>Français</p>
-<p>Русский</p>
-<p>ภาษาไทย</p>
-<p>Bahasa Indonesia</p>
-<p>手話・文字通訳</p>
-<p>音声で読み上げる</p>
-<p>文字サイズを</p>
-<p>目的別でさがす</p>
-<p>年齢別でさがす</p>
-<p>現在の位置：</p>
-<p>トップページ</p>
-<p>妊娠・子育て応援サイト スマイルスマイル</p>
-<p>目的でさがす</p>
-<p>こどもとおでかけ</p>
-<p>&gt; 津波注意報に伴う那珂湊児童館からのお知らせ</p>
-<p>津波注意報に伴う那珂湊児童館からのお知らせ</p>
-<p>ページID1015688</p>
-<p>更新日 2026年6月8日</p>
-<p>大きな文字で印刷</p>
-<p>津波注意報が発表されたため、注意報が解除され安全が確認できるまで児童館は利用できません。</p>
-<p>※本日6月8日（月曜日）の子育てサロンてまりは中止となります。</p>
-<p>ご理</p></div>
-  <div class="card-meta">
-    <span class="tag" style="background:#E65100">重要</span>
-    <a href="https://www.city.hitachinaka.lg.jp/smile_smile/mokuteki/1005178/1005273/1015688.html" target="_blank" class="src-link">公式ページを見る →</a>
-  </div>
-</div>
-<div class="card" style="border-left:4px solid #E65100">
-  <div class="card-title"><a href="https://www.city.hitachinaka.lg.jp/machizukuri/parks/1007200/1017049.html" target="_blank">台風6号に伴う暴風雨により倒木の恐れがある一部の公園を一時閉鎖しています</a></div>
-  <div class="card-summary"><p>やさしい日本語</p>
-<p>ふりがなをけす</p>
-<p>non-Japanese</p>
-<p>Select Language</p>
-<p>English</p>
-<p>中文（简体）</p>
-<p>中文（繁体）</p>
-<p>Tiếng Việt</p>
-<p>Portuguêsês</p>
-<p>Español</p>
-<p>Deutsch</p>
-<p>Français</p>
-<p>Русский</p>
-<p>ภาษาไทย</p>
-<p>Bahasa Indonesia</p>
-<p>手話・文字通訳</p>
-<p>音声で読み上げる</p>
-<p>文字サイズを</p>
-<p>ひたちなか市LINE 公式アカウント</p>
-<p>戸籍の氏名のフリガナ</p>
-<p>マイナンバーカード・パスポート</p>
-<p>年金・健康保険</p>
-<p>交通機関・駐車場</p>
-<p>交通安全・防犯</p>
-<p>防災・災害情報</p>
-<p>消防・救急・自衛隊</p>
-<p>ごみとリサイクル</p>
-<p>下水道・し尿・浄化槽</p>
-<p>ペット・動物</p>
-<p>暮らし 相談</p>
-<p>消費生活センター</p>
-<p>妊娠・子育て応援サイト スマイルスマイル</p>
-<p>青少年の体験活動・団体</p>
-<p>生涯学習・各種講座</p>
-<p>ふぁみりこらぼ（子育て支援・多世代交流施設）</p>
-<p>医療・健康診断</p>
-<p>医療機関向け様式集</p>
-<p>生活困窮者自立支援・生活</p></div>
-  <div class="card-meta">
-    <span class="tag" style="background:#E65100">重要</span>
-    <a href="https://www.city.hitachinaka.lg.jp/machizukuri/parks/1007200/1017049.html" target="_blank" class="src-link">公式ページを見る →</a>
-  </div>
-</div>
-<div class="card" style="border-left:4px solid #E65100">
-  <div class="card-title"><a href="https://www.city.hitachinaka.lg.jp/kurashi/shouhi/1003774/1003782.html" target="_blank">災害に便乗した悪質商法にご注意を！</a></div>
-  <div class="card-summary"><p>やさしい日本語</p>
-<p>ふりがなをけす</p>
-<p>non-Japanese</p>
-<p>Select Language</p>
-<p>English</p>
-<p>中文（简体）</p>
-<p>中文（繁体）</p>
-<p>Tiếng Việt</p>
-<p>Portuguêsês</p>
-<p>Español</p>
-<p>Deutsch</p>
-<p>Français</p>
-<p>Русский</p>
-<p>ภาษาไทย</p>
-<p>Bahasa Indonesia</p>
-<p>手話・文字通訳</p>
-<p>音声で読み上げる</p>
-<p>文字サイズを</p>
-<p>ひたちなか市LINE 公式アカウント</p>
-<p>戸籍の氏名のフリガナ</p>
-<p>マイナンバーカード・パスポート</p>
-<p>年金・健康保険</p>
-<p>交通機関・駐車場</p>
-<p>交通安全・防犯</p>
-<p>防災・災害情報</p>
-<p>消防・救急・自衛隊</p>
-<p>ごみとリサイクル</p>
-<p>下水道・し尿・浄化槽</p>
-<p>ペット・動物</p>
-<p>暮らし 相談</p>
-<p>消費生活センター</p>
-<p>妊娠・子育て応援サイト スマイルスマイル</p>
-<p>青少年の体験活動・団体</p>
-<p>生涯学習・各種講座</p>
-<p>ふぁみりこらぼ（子育て支援・多世代交流施設）</p>
-<p>医療・健康診断</p>
-<p>医療機関向け様式集</p>
-<p>生活困窮者自立支援・生活</p></div>
-  <div class="card-meta">
-    <span class="tag" style="background:#E65100">重要</span>
-    <a href="https://www.city.hitachinaka.lg.jp/kurashi/shouhi/1003774/1003782.html" target="_blank" class="src-link">公式ページを見る →</a>
-  </div>
-</div>
-<div class="card" style="border-left:4px solid #E65100">
-  <div class="card-title"><a href="https://www.city.hitachinaka.lg.jp/kosodate/kyouiku/1002132/1016728.html" target="_blank">ひたちなか市立学校の教育職員に関する業務量管理・健康確保措置実施計画</a></div>
-  <div class="card-summary"><p>やさしい日本語</p>
-<p>ふりがなをけす</p>
-<p>non-Japanese</p>
-<p>Select Language</p>
-<p>English</p>
-<p>中文（简体）</p>
-<p>中文（繁体）</p>
-<p>Tiếng Việt</p>
-<p>Portuguêsês</p>
-<p>Español</p>
-<p>Deutsch</p>
-<p>Français</p>
-<p>Русский</p>
-<p>ภาษาไทย</p>
-<p>Bahasa Indonesia</p>
-<p>手話・文字通訳</p>
-<p>音声で読み上げる</p>
-<p>文字サイズを</p>
-<p>ひたちなか市LINE 公式アカウント</p>
-<p>戸籍の氏名のフリガナ</p>
-<p>マイナンバーカード・パスポート</p>
-<p>年金・健康保険</p>
-<p>交通機関・駐車場</p>
-<p>交通安全・防犯</p>
-<p>防災・災害情報</p>
-<p>消防・救急・自衛隊</p>
-<p>ごみとリサイクル</p>
-<p>下水道・し尿・浄化槽</p>
-<p>ペット・動物</p>
-<p>暮らし 相談</p>
-<p>消費生活センター</p>
-<p>妊娠・子育て応援サイト スマイルスマイル</p>
-<p>青少年の体験活動・団体</p>
-<p>生涯学習・各種講座</p>
-<p>ふぁみりこらぼ（子育て支援・多世代交流施設）</p>
-<p>医療・健康診断</p>
-<p>医療機関向け様式集</p>
-<p>生活困窮者自立支援・生活</p></div>
-  <div class="card-meta">
-    <span class="tag" style="background:#E65100">重要</span>
-    <a href="https://www.city.hitachinaka.lg.jp/kosodate/kyouiku/1002132/1016728.html" target="_blank" class="src-link">公式ページを見る →</a>
-  </div>
-</div>
-<div class="card" style="border-left:4px solid #E65100">
-  <div class="card-title"><a href="https://www.city.hitachinaka.lg.jp/business/nyusatsu/1004545/1007579/1015520.html" target="_blank">ひたちなか市が発注する建設工事における情報共有システム実施要領</a></div>
-  <div class="card-summary"><p>やさしい日本語</p>
-<p>ふりがなをけす</p>
-<p>non-Japanese</p>
-<p>Select Language</p>
-<p>English</p>
-<p>中文（简体）</p>
-<p>中文（繁体）</p>
-<p>Tiếng Việt</p>
-<p>Portuguêsês</p>
-<p>Español</p>
-<p>Deutsch</p>
-<p>Français</p>
-<p>Русский</p>
-<p>ภาษาไทย</p>
-<p>Bahasa Indonesia</p>
-<p>手話・文字通訳</p>
-<p>音声で読み上げる</p>
-<p>文字サイズを</p>
-<p>ひたちなか市LINE 公式アカウント</p>
-<p>戸籍の氏名のフリガナ</p>
-<p>マイナンバーカード・パスポート</p>
-<p>年金・健康保険</p>
-<p>交通機関・駐車場</p>
-<p>交通安全・防犯</p>
-<p>防災・災害情報</p>
-<p>消防・救急・自衛隊</p>
-<p>ごみとリサイクル</p>
-<p>下水道・し尿・浄化槽</p>
-<p>ペット・動物</p>
-<p>暮らし 相談</p>
-<p>消費生活センター</p>
-<p>妊娠・子育て応援サイト スマイルスマイル</p>
-<p>青少年の体験活動・団体</p>
-<p>生涯学習・各種講座</p>
-<p>ふぁみりこらぼ（子育て支援・多世代交流施設）</p>
-<p>医療・健康診断</p>
-<p>医療機関向け様式集</p>
-<p>生活困窮者自立支援・生活</p></div>
-  <div class="card-meta">
-    <span class="tag" style="background:#E65100">重要</span>
-    <a href="https://www.city.hitachinaka.lg.jp/business/nyusatsu/1004545/1007579/1015520.html" target="_blank" class="src-link">公式ページを見る →</a>
-  </div>
-</div>
+<p class="empty">本日の重要はありません</p>
 
 <h2 class="minor">⚪ その他の更新情報（24時間以内）</h2>
-<table><tbody><tr><td><a href="https://www.city.hitachinaka.lg.jp/fukushi/kaigo/1014302/1015376/1015383.html" target="_blank">高校生介護ボランティア養成講座を開催します</a></td></tr>
-<tr><td><a href="https://www.city.hitachinaka.lg.jp/kosodate/kyouiku/1014753/1016032/1016056/1016800/1016851/1017020.html" target="_blank">ひたちなかバスケットボールクラブ SHAKE!!</a></td></tr>
-<tr><td><a href="https://www.city.hitachinaka.lg.jp/machizukuri/parks/1004799/1009593.html" target="_blank">馬渡はにわ公園の花しょうぶ園 開花状況</a></td></tr>
-<tr><td><a href="https://www.city.hitachinaka.lg.jp/fukushi/iryo/1005583/1008992.html" target="_blank">ヤング健診</a></td></tr>
-<tr><td><a href="https://www.city.hitachinaka.lg.jp/smile_smile/mokuteki/1005178/1006452/1005155/1005179.html" target="_blank">子育てサロンカレンダー（6月のサロンカレンダー掲載※開催予定変更あり）</a></td></tr>
+<table><tbody><tr><td><a href="https://www.city.hitachinaka.lg.jp/machizukuri/kasen/1003150/1003153.html" target="_blank">令和8年度河川クリーン作戦を実施します</a></td></tr>
+<tr><td><a href="https://www.city.hitachinaka.lg.jp/machizukuri/kankyo/1002562/1017035.html" target="_blank">【6月25日まで募集】ひたちなか市在住の親子限定！国営ひたち海浜公園ホタル観察会</a></td></tr>
+<tr><td><a href="https://www.city.hitachinaka.lg.jp/shisei/koho/1003305/1017063.html" target="_blank">市報ひたちなか令和8年6月10日発行756号</a></td></tr>
+<tr><td><a href="https://www.city.hitachinaka.lg.jp/smile_smile/nenrei/1007487/1005190/1005196/1006165.html" target="_blank">まちのこベースひたちなか（参加者募集中！）</a></td></tr>
+<tr><td><a href="https://www.city.hitachinaka.lg.jp/kosodate/tosho/1007142/1017062.html" target="_blank">【那珂湊図書館】蔵書点検に伴う特別休館（6月29日～7月6日）のお知らせ</a></td></tr>
+<tr><td><a href="https://www.city.hitachinaka.lg.jp/kosodate/tosho/1007142/1009809.html" target="_blank">中央図書館おはなし会</a></td></tr>
 </tbody></table>
 </div>
 </div>
@@ -297,23 +83,47 @@ footer{text-align:center;font-size:12px;color:#888;padding:24px;margin-top:16px}
 <h2 class="ibaraki-all">📰 本日の茨城ニュース</h2>
 <div class="card" style="border-left:4px solid #33691E"><div class="card-summary"><p>茨城県のニュースを地方議員候補者の視点でまとめます。</p>
 <ul>
-<li>坂東市で約130軒が停電となったが、7時半ごろまでに解消した。</li>
-<li>フィリピン・ミンダナオ島付近で発生した地震を受け、茨城県内沿岸9市町村に津波注意報が出されたが、人的、物的被害の情報はなく、津波も観測されていない。</li>
-<li>茨城県古河市の介護老人保健施設で殺害された入所者の妻が、元職員の赤間恵美被告に対して極刑を求めた。</li>
-<li>日銀は水戸事務所長に安田武氏を充てる人事を発表した。</li>
-<li>茨城県は県産メロンの知名度アップに力を入れており、ブランド化や大都市圏の百貨店での販売を強化する。</li>
-<li>水戸地裁の新所長に就任した野口宣大氏が記者会見を開き、裁判所に対する信頼と期待に応えられるよう力を尽くしていくことを表明した。</li>
-</ul></div></div><table><tbody><tr><td><a href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1780956844995900" target="_blank">坂東で約130軒停電　茨城【まとめ】</a></td></tr>
-<tr><td><a href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1780926054900500" target="_blank">９市町村に津波注意報　茨城県内沿岸、慌てず避難　日立市、災害対策本部設置</a></td></tr>
-<tr><td><a href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1780926054695800" target="_blank">死亡男性妻　極刑求める　茨城・古河老健殺人公判　判決7月7日</a></td></tr>
-<tr><td><a href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1780924004516800" target="_blank">日銀人事　水戸事務所長に安田氏</a></td></tr>
-<tr><td><a href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1780926308620600" target="_blank">茨城県産メロン　浸透狙う　ブランド化で知名度向上　大都市圏の百貨店へ</a></td></tr>
-<tr><td><a href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1780923956654200" target="_blank">「信頼と期待に応える」　水戸地裁　野口新所長が抱負　茨城</a></td></tr>
+<li>朋友社が破産手続き開始決定を受け、負債は約1億2000万円と推定されており、県内の経済状況に影響を与える可能性があります。</li>
+<li>鉾田市と古河市で停電が発生し、約460軒と約230軒が影響を受けたが、復旧作業が行われました。</li>
+<li>ケアマネジャーの資格更新制廃止が検討されており、茨城県内の関係者からは歓迎の声も上がる一方、定期的な研修を義務付ける新たな仕組みに対する疑問の声もあります。</li>
+<li>日立市の障害者支援事業所の利用者がバリスタの全国競技大会に出場するために準備を進めており、チームワークを磨き、優勝を目指しています。</li>
+</ul></div></div><table><tbody><tr><td><a href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1780993470864300" target="_blank">朋友社　破産手続き開始決定　負債1億2000万円　茨城</a></td></tr>
+<tr><td><a href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1780967109383500" target="_blank">鉾田で約460軒停電　茨城【まとめ】</a></td></tr>
+<tr><td><a href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1780966162494900" target="_blank">古河で約230軒停電　茨城【まとめ】</a></td></tr>
+<tr><td><a href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1780926055098900" target="_blank">ケアマネ負担緩和期待　資格更新見直し　茨城県内関係者　新定期研修に疑問の声も</a></td></tr>
+<tr><td><a href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1780923957564000" target="_blank">目指せバリスタ全国頂点　茨城・日立の障害者支援事業所　出場の5人　チームワーク磨く</a></td></tr>
 </tbody></table>
 </div>
 </div>
 
-<footer>自動生成 | <a href="https://www.city.hitachinaka.lg.jp/" target="_blank">ひたちなか市公式</a> | <a href="https://ibarakinews.jp/" target="_blank">茨城新聞</a></footer>
+<div id="national" class="tab-content">
+<div class="container">
+<h2 class="national">🏢 国政・県政 最新情報</h2>
+<div class="card" style="border-left:4px solid #4527A0"><div class="card-summary"><p>地方議員候補者として注目すべき国政・県政ニュースを整理します。</p>
+<ul>
+<li>高市総理は第６回こども政策推進会議を開催し、こども政策の推進を図っています。これは、地方自治体における子ども政策の重要性を示唆しています。</li>
+<li>高市総理は日本理学療法士協会の第５５回定時総会でビデオメッセージを送り、医療従事者の支援を強調しています。地方議員候補者として、地域の医療体制の強化を考える必要があります。</li>
+<li>閣議の概要では、オランダ王国及びベルギー王国との相互儀礼叙勲について議論されています。これは、国際関係の強化と外交の重要性を示しています。</li>
+<li>高市総理は日本経済団体連合会定時総会でビデオメッセージを送り、経済界との連携を強調しています。地方議員候補者として、地域経済の活性化を考える必要があります。</li>
+<li>高市総理は世界島嶼（しょ）国海洋会議開会式に出席し、海洋政策の重要性を強調しています。これは、沿岸地域の発展と海洋政策の推進を地方議員候補者として考える必要があります。</li>
+<li>臨時閣議の概要では、緊急事態への対応が議論されています。地方議員候補者として、地域の防災体制と住民の安全を考える必要があります。</li>
+<li>高市総理は第９回中東情勢に関する関係閣僚会議に出席し、国際情勢の安定を図っています。これは、国際関係の複雑さと地域の影響を地方議員候補者として考える必要があります。</li>
+</ul>
+<p>これらのニュースは、地方議員候補者として、地方自治、住民生活、財政、選挙、防災に関するトピックを考える上で重要な情報源となります。</p></div></div><h3 class="src-heading">🏛️ 首相官邸</h3><table><tbody><tr><td><a href="https://www.kantei.go.jp/jp/tyoukanpress/202606/9_a.html" target="_blank">閣議の概要について</a></td></tr>
+<tr><td><a href="https://www.kantei.go.jp/jp/105/actions/202606/09kodomo.html" target="_blank">高市総理は第６回こども政策推進会議を開催しました</a></td></tr>
+<tr><td><a href="https://www.kantei.go.jp/jp/105/discourse/202606message.html" target="_blank">日本理学療法士協会　第５５回定時総会 高市総理ビデオメッセージ</a></td></tr>
+<tr><td><a href="https://www.kantei.go.jp/jp/tyoukanpress/202606/5_a.html" target="_blank">閣議の概要／オランダ王国及びベルギー王国との相互儀礼叙勲について</a></td></tr>
+<tr><td><a href="https://www.kantei.go.jp/jp/105/discourse/20260603message.html" target="_blank">日本経済団体連合会定時総会　高市総理ビデオメッセージ</a></td></tr>
+<tr><td><a href="https://www.kantei.go.jp/jp/105/actions/202606/03kaikaishiki.html" target="_blank">高市総理は世界島嶼（しょ）国海洋会議開会式に出席しました</a></td></tr>
+<tr><td><a href="https://www.kantei.go.jp/jp/tyoukanpress/202606/3_a.html" target="_blank">臨時閣議の概要について</a></td></tr>
+<tr><td><a href="https://www.kantei.go.jp/jp/105/actions/202606/02kaigi_middle-east.html" target="_blank">高市総理は第９回中東情勢に関する関係閣僚会議出席しました</a></td></tr>
+<tr><td><a href="https://www.kantei.go.jp/jp/105/actions/202606/02menkai.html" target="_blank">高市総理は世界島嶼（しょ）国海洋会議出席首脳等と面会しました</a></td></tr>
+<tr><td><a href="https://www.kantei.go.jp/jp/105/actions/202606/02hyoukei.html" target="_blank">高市総理は世界銀行グループのバンガ総裁による表敬を受けました</a></td></tr>
+</tbody></table>
+</div>
+</div>
+
+<footer>自動生成 | <a href="https://www.city.hitachinaka.lg.jp/" target="_blank">ひたちなか市公式</a> | <a href="https://ibarakinews.jp/" target="_blank">茨城新聞</a> | <a href="https://www.pref.ibaraki.jp/" target="_blank">茨城県</a> | <a href="https://www.kantei.go.jp/" target="_blank">首相官邸</a> | <a href="https://www.soumu.go.jp/" target="_blank">総務省</a> | <a href="https://www.cao.go.jp/bunken-suishin/" target="_blank">内閣府 地方分権</a></footer>
 
 <script>
 function switchTab(id, btn) {
