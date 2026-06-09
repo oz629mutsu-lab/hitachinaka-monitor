@@ -94,66 +94,59 @@ def fetch_pdf(pdf_url):
         print(f"  PDF取得失敗: {e}"); return ""
 
 
-def ai_summary(title, page_text, pdf_list):
+def ai_batch_summary(items_data):
+    """複数記事をまとめて1回のAPIコールで要約する（items_data: [{title, page_text, pdf_list}]）"""
     if not GROQ_API_KEY:
-        return page_text[:400]
+        return {i: d["page_text"][:400] for i, d in enumerate(items_data)}
 
-    parts = [f"タイトル: {title}"]
-    if page_text: parts.append(f"ページ本文:\n{page_text[:2000]}")
-    for i, (url, text) in enumerate(pdf_list, 1):
-        parts.append(f"PDF{i}内容:\n{text}" if text else f"PDF{i}: {url}（取得不可）")
+    blocks = []
+    for idx, d in enumerate(items_data):
+        parts = [f"タイトル: {d['title']}"]
+        if d["page_text"]: parts.append(f"本文:\n{d['page_text'][:1200]}")
+        for j, (url, text) in enumerate(d["pdf_list"], 1):
+            parts.append(f"PDF{j}:\n{text[:600]}" if text else f"PDF{j}: {url}（取得不可）")
+        blocks.append(f"=={idx}==\n" + "\n".join(parts))
 
-    user_prompt = f"""以下のひたちなか市公式情報をウェブサイト掲載用に詳しく整理してください。
+    user_prompt = f"""以下の{len(items_data)}件のひたちなか市公式情報をそれぞれ要約してください。
 
 【絶対厳守ルール】
-- ※は一切使わない
-- 箇条書きは「・」のみ使用
-- 情報を省略・要約しすぎない。元の情報に含まれる内容は漏らさず記載する
-- 施設名・団体名・人名・地名などの固有名詞は必ず正確に記載する
-- 対象者（年齢・資格・地域など）を具体的に記載する
-- 日程・期間・締切は「令和○年○月○日」のまま省略せず記載する
-- 金額・数量・定員などの数値は必ず含める
-- 申込方法・問い合わせ先（電話番号・担当課）があれば記載する
-- 行政用語は平易な言葉に言い換える
-- 800文字以内
+- ※は一切使わない / 箇条書きは「・」のみ
+- 施設名・団体名・人名・地名・電話番号を省略せず正確に記載
+- 日程・金額・数値・対象者を必ず含める
+- 行政用語は平易な言葉に / 各記事600文字以内
 
-【構成】
+【各記事の出力形式】
+==0==
 1行目：何についての情報か（一文）
-空行
-・詳細ポイントを5〜8項目（省略なし）
+・詳細ポイント5〜7項目
+
+==1==
+（以下同様）
 
 【情報】
-{"　".join(parts)}"""
+{"".join(chr(10)*2 + b for b in blocks)}"""
 
-    for attempt in range(5):
-        try:
-            res = requests.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
-                json={
-                    "model": "llama-3.3-70b-versatile",
-                    "messages": [
-                        {"role":"system","content":"あなたはひたちなか市議会議員秘書のアシスタントです。市政情報を正確かつ詳しく、固有名詞や数値を省略せずに伝えることが仕事です。"},
-                        {"role":"user","content": user_prompt}
-                    ],
-                    "max_tokens": 900,
-                    "temperature": 0.1
-                },
-                timeout=40
-            )
-            data = res.json()
-            if "choices" in data:
-                return data["choices"][0]["message"]["content"]
-            err = data.get("error", {}).get("message", str(data))
-            # レート制限エラーから待機秒数を取得して待つ
-            wait = re.search(r"try again in ([\d.]+)s", err)
-            wait_sec = float(wait.group(1)) + 3 if wait else 30
-            print(f"  Groq待機(試行{attempt+1}): {wait_sec:.0f}秒")
-            time.sleep(wait_sec)
-        except Exception as e:
-            print(f"  Groq例外(試行{attempt+1}): {e}")
-            time.sleep(15)
-    return "（AI要約取得失敗 — 詳細は元サイトをご確認ください）"
+    result = groq_call(
+        "ひたちなか市の複数の市政情報をまとめて要約するアシスタントです。固有名詞・数値を省略しません。",
+        user_prompt, max_tokens=2500, label="[バッチ]"
+    )
+    if not result:
+        return {i: d["page_text"][:400] for i, d in enumerate(items_data)}
+
+    # ==N== セクションを分割して返す
+    summaries = {}
+    for idx in range(len(items_data)):
+        m = re.search(rf"=={idx}==\s*(.*?)(?===\d+==|$)", result, re.DOTALL)
+        summaries[idx] = m.group(1).strip() if m else items_data[idx]["page_text"][:400]
+    return summaries
+
+def ai_summary(title, page_text, pdf_list):
+    """単体記事用（後方互換のため残す）"""
+    if not GROQ_API_KEY:
+        return page_text[:400]
+    result = ai_batch_summary([{"title": title, "page_text": page_text, "pdf_list": pdf_list}])
+    return result.get(0, page_text[:400])
+
 
 
 def load_seen():
@@ -452,24 +445,29 @@ function switchTab(id, btn) {{
 </html>"""
 
 
-_item_count = 0
+def process_items_batch(items, label):
+    """ひたちなか市記事を全件まとめてページ取得→1回のAPIコールで要約"""
+    if not items:
+        return []
+    print(f"  {label} {len(items)}件 ページ取得中...")
+    items_data = []
+    for item in items:
+        page_text, pdf_links = fetch_page(item["link"])
+        pdf_list = [(url, fetch_pdf(url)) for url in pdf_links]
+        items_data.append({"title": item["title"], "page_text": page_text, "pdf_list": pdf_list})
+        print(f"    取得: {item['title'][:45]}")
 
-def process_item(item, label):
-    global _item_count
-    if _item_count > 0:
-        time.sleep(5)
-    _item_count += 1
-    print(f"  処理中: {item['title'][:50]}")
-    page_text, pdf_links = fetch_page(item["link"])
-    pdf_list = [(url, fetch_pdf(url)) for url in pdf_links]
-    summary  = ai_summary(item["title"], page_text, pdf_list)
-    return {
-        "title":       item["title"],
-        "link":        item["link"],
-        "summary":     summary,
-        "summary_html": summary_to_html(summary),
-        "label":       label
-    }
+    print(f"  {label} {len(items)}件 AI要約中（バッチ）...")
+    summaries = ai_batch_summary(items_data)
+
+    cards = []
+    for idx, item in enumerate(items):
+        summary = summaries.get(idx, "")
+        cards.append({
+            "title": item["title"], "link": item["link"],
+            "summary": summary, "summary_html": summary_to_html(summary), "label": label
+        })
+    return cards
 
 
 def main():
@@ -489,8 +487,11 @@ def main():
     important = [i for i in new_items if classify(i) == "important"]
     minor_24h = [i for i in new_items if classify(i) == "minor" and within_24h(i.get("pub_date",""))]
 
-    gikai_cards     = [process_item(i, "議会") for i in gikai]
-    important_cards = [process_item(i, "重要") for i in important]
+    # 議会＋重要をまとめて1回のAPIコールで処理
+    all_priority = gikai + important
+    all_cards = process_items_batch(all_priority, "ひたちなか市")
+    gikai_cards     = all_cards[:len(gikai)]
+    important_cards = all_cards[len(gikai):]
 
     # ===== 茨城新聞 =====
     print("茨城新聞を取得中...")
