@@ -85,20 +85,29 @@ def to_abs(href):
     return BASE_URL + (href if href.startswith("/") else "/" + href)
 
 
-def fetch_page(url):
+def fetch_page(url, max_pdfs=5):
     try:
         res = requests.get(url, headers={"User-Agent":"Mozilla/5.0"}, timeout=15)
         res.encoding = res.apparent_encoding or "utf-8"
         p = SmartParser(); p.feed(res.text)
-        return p.get_text(), [to_abs(l) for l in p.get_pdf_links()[:3]]
+        return p.get_text(), [to_abs(l) for l in p.get_pdf_links()[:max_pdfs]]
     except Exception as e:
         print(f"  ページ取得失敗: {e}"); return "", []
 
 
-def fetch_pdf(pdf_url):
+def fetch_pdf(pdf_url, max_bytes=4_000_000):
+    """PDFテキスト抽出。max_bytes超のPDFはスキップ（デフォルト4MB）"""
     try:
         from pdfminer.high_level import extract_text
-        res = requests.get(pdf_url, headers={"User-Agent":"Mozilla/5.0"}, timeout=20)
+        # Content-Lengthで事前チェック
+        head = requests.head(pdf_url, headers={"User-Agent":"Mozilla/5.0"}, timeout=10)
+        size = int(head.headers.get("Content-Length", 0))
+        if size > max_bytes:
+            print(f"  PDFスキップ（{size//1024}KB）: {pdf_url[:50]}")
+            return ""
+        res = requests.get(pdf_url, headers={"User-Agent":"Mozilla/5.0"}, timeout=30)
+        if len(res.content) > max_bytes:
+            return ""
         text = re.sub(r"\s+", " ", extract_text(io.BytesIO(res.content))).strip()
         return text[:5000]
     except Exception as e:
@@ -340,8 +349,9 @@ def ai_batch_summary_national(items_data):
 
     blocks = []
     for idx, d in enumerate(items_data):
+        max_text = d.get("_max_text", 4000)
         parts = [f"タイトル: {d['title']}（情報源: {d.get('_source','')}）"]
-        if d["page_text"]: parts.append(f"本文:\n{d['page_text'][:4000]}")
+        if d["page_text"]: parts.append(f"本文:\n{d['page_text'][:max_text]}")
         for j, (url, text) in enumerate(d["pdf_list"], 1):
             parts.append(f"PDF{j}:\n{text[:1500]}" if text else f"PDF{j}: {url}（取得不可）")
         blocks.append(f"=={idx}==\n" + "\n".join(parts))
@@ -465,14 +475,28 @@ def process_national_batch(sources):
     if not all_items:
         return {}
 
+    # ソース別設定: 茨城県はPDF多め・テキスト多め、他は標準
+    SOURCE_CONFIG = {
+        "茨城県 報道発表":  {"max_pdfs": 10, "max_text": 7000},
+        "茨城県 注目情報":  {"max_pdfs": 8,  "max_text": 5000},
+        "茨城県 防災情報":  {"max_pdfs": 5,  "max_text": 4000},
+        "首相官邸":         {"max_pdfs": 3,  "max_text": 4000},
+        "総務省":           {"max_pdfs": 8,  "max_text": 4000},
+        "内閣府 地方分権改革": {"max_pdfs": 8, "max_text": 4000},
+    }
+
     print(f"  国政・県政 {len(all_items)}件 ページ取得中...")
     items_data = []
     for item in all_items:
-        page_text, pdf_links = fetch_page(item["link"])
-        pdf_list = [(url, fetch_pdf(url)) for url in pdf_links[:2]]
+        cfg = SOURCE_CONFIG.get(item["_source"], {"max_pdfs": 5, "max_text": 4000})
+        page_text, pdf_links = fetch_page(item["link"], max_pdfs=cfg["max_pdfs"])
+        pdf_list = [(url, fetch_pdf(url)) for url in pdf_links]
         items_data.append({
-            "title": item["title"], "page_text": page_text,
-            "pdf_list": pdf_list, "_source": item["_source"]
+            "title": item["title"],
+            "page_text": page_text,
+            "pdf_list": pdf_list,
+            "_source": item["_source"],
+            "_max_text": cfg["max_text"],
         })
         print(f"    取得: {item['title'][:45]}")
         time.sleep(1)
@@ -708,7 +732,8 @@ def process_items_batch(items, label, batch_size=3):
     print(f"  {label} {len(items)}件 ページ取得中...")
     items_data = []
     for item in items:
-        page_text, pdf_links = fetch_page(item["link"])
+        # ひたちなか市はPDF5件まで
+        page_text, pdf_links = fetch_page(item["link"], max_pdfs=5)
         pdf_list = [(url, fetch_pdf(url)) for url in pdf_links]
         items_data.append({"title": item["title"], "page_text": page_text, "pdf_list": pdf_list})
         print(f"    取得: {item['title'][:45]}")
