@@ -380,12 +380,87 @@ def ai_batch_summary_national(items_data):
     return summaries
 
 
+def ai_select_national_items(sources):
+    """各ソースのRSSタイトル・説明からAIが重要記事を選択。{source_name: [index,...]} を返す"""
+    if not GROQ_API_KEY:
+        return {s["name"]: list(range(min(3, len(s["items"])))) for s in sources}
+
+    blocks = []
+    for s in sources:
+        if not s["items"]: continue
+        lines = "\n".join(
+            f"[{i}] {item['title']}" + (f"（{item['description'][:80]}）" if item.get('description') else "")
+            for i, item in enumerate(s["items"])
+        )
+        blocks.append(f"【{s['name']}】\n{lines}")
+
+    if not blocks:
+        return {}
+
+    prompt = f"""以下の国政・県政ニュース一覧から、地方議員候補者にとって重要な記事を各情報源ごとに最大3件選んでください。
+
+【選択基準】
+- 地方自治・市町村行政に直接関わる制度変更・法改正
+- 地方財政・補助金・交付金・予算に関わるもの
+- 防災・災害対応・インフラ
+- 選挙・議会制度に関するもの
+- 住民生活（福祉・医療・教育・子育て）に影響するもの
+- 茨城県・ひたちなか市に直接関わる内容
+
+【出力形式】（必ずこの形式で。他の文章は不要）
+茨城県 報道発表: 0,2
+首相官邸: 1,3,5
+総務省: 0,2,4
+内閣府 地方分権改革: 0,1
+
+【ニュース一覧】
+{"".join(chr(10)*2 + b for b in blocks)}"""
+
+    result = groq_call(
+        "国政・県政ニュースから地方議員候補者に重要な記事を選ぶアシスタントです。",
+        prompt, max_tokens=300, label="[重要度選択]"
+    )
+
+    selected = {}
+    for s in sources:
+        # デフォルト: 先頭2件
+        selected[s["name"]] = list(range(min(2, len(s["items"]))))
+
+    if result:
+        for line in result.strip().split("\n"):
+            if ":" not in line: continue
+            src_part, idx_part = line.split(":", 1)
+            src = src_part.strip()
+            try:
+                indices = [int(x.strip()) for x in idx_part.split(",") if x.strip().isdigit()]
+                # ソース名が一致するものに適用
+                for s in sources:
+                    if s["name"] == src or s["name"] in src or src in s["name"]:
+                        valid = [i for i in indices if i < len(s["items"])]
+                        if valid:
+                            selected[s["name"]] = valid[:3]
+            except Exception:
+                continue
+
+    return selected
+
+
 def process_national_batch(sources):
-    """各ソースの上位3件をページ取得→AIバッチ要約してカードを返す"""
+    """AIが選んだ重要記事をページ取得→AIバッチ要約してカードを返す"""
+    if not any(s["items"] for s in sources):
+        return {}
+
+    # Step1: AIで重要記事を選択
+    print("  国政・県政 重要記事をAIで選択中...")
+    selected_indices = ai_select_national_items(sources)
+    time.sleep(5)
+
+    # Step2: 選択された記事のページを取得
     all_items = []
     for s in sources:
-        for item in s["items"][:3]:
-            all_items.append({**item, "_source": s["name"]})
+        for idx in selected_indices.get(s["name"], []):
+            if idx < len(s["items"]):
+                all_items.append({**s["items"][idx], "_source": s["name"]})
 
     if not all_items:
         return {}
@@ -402,11 +477,11 @@ def process_national_batch(sources):
         print(f"    取得: {item['title'][:45]}")
         time.sleep(1)
 
+    # Step3: AI詳細要約
     time.sleep(5)
-    print(f"  国政・県政 {len(all_items)}件 AI要約中...")
+    print(f"  国政・県政 {len(all_items)}件 AI詳細要約中...")
     summaries = ai_batch_summary_national(items_data)
 
-    # source_name → cards のdict
     cards_by_source = {}
     for idx, item in enumerate(all_items):
         summary = summaries.get(idx, "")
@@ -414,8 +489,7 @@ def process_national_batch(sources):
             "title": item["title"], "link": item["link"],
             "summary": summary, "summary_html": summary_to_html(summary)
         }
-        src = item["_source"]
-        cards_by_source.setdefault(src, []).append(card)
+        cards_by_source.setdefault(item["_source"], []).append(card)
     return cards_by_source
 
 
