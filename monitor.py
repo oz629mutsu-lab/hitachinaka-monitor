@@ -31,7 +31,6 @@ IMPORTANT_KEYWORDS = [
 
 # 国政・県政 RSS ソース
 IBARAKI_PREF_RSS = [
-    ("茨城県 報道発表",  "https://www.pref.ibaraki.jp/hodo.xml"),
     ("茨城県 注目情報",  "https://www.pref.ibaraki.jp/chumoku.xml"),
     ("茨城県 防災情報",  "https://www.pref.ibaraki.jp/bousai/bousai_rss.xml"),
 ]
@@ -477,7 +476,6 @@ def process_national_batch(sources):
 
     # ソース別設定: 茨城県はPDF多め・テキスト多め、他は標準
     SOURCE_CONFIG = {
-        "茨城県 報道発表":  {"max_pdfs": 10, "max_text": 7000},
         "茨城県 注目情報":  {"max_pdfs": 8,  "max_text": 5000},
         "茨城県 防災情報":  {"max_pdfs": 5,  "max_text": 4000},
         "首相官邸":         {"max_pdfs": 3,  "max_text": 4000},
@@ -602,7 +600,7 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
         if not national_sources:
             return '<p class="empty">本日の国政・県政情報はありません</p>'
         source_icons = {
-            "茨城県 報道発表": "🌿", "茨城県 注目情報": "📌", "茨城県 防災情報": "🚨",
+            "茨城県 注目情報": "📌", "茨城県 防災情報": "🚨",
             "首相官邸": "🏛️", "総務省": "📋", "内閣府 地方分権改革": "🏢",
         }
         html = ""
