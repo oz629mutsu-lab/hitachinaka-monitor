@@ -70,7 +70,7 @@ class SmartParser(HTMLParser):
             t = re.sub(r"\s+", " ", data).strip()
             if len(t) > 5: self._lines.append(t)
 
-    def get_text(self, max_chars=4000):
+    def get_text(self, max_chars=12000):
         seen, unique = set(), []
         for l in self._lines:
             if l not in seen:
@@ -100,7 +100,7 @@ def fetch_pdf(pdf_url):
         from pdfminer.high_level import extract_text
         res = requests.get(pdf_url, headers={"User-Agent":"Mozilla/5.0"}, timeout=20)
         text = re.sub(r"\s+", " ", extract_text(io.BytesIO(res.content))).strip()
-        return text[:2000]
+        return text[:5000]
     except Exception as e:
         print(f"  PDF取得失敗: {e}"); return ""
 
@@ -138,9 +138,9 @@ def ai_batch_summary(items_data):
     blocks = []
     for idx, d in enumerate(items_data):
         parts = [f"タイトル: {d['title']}"]
-        if d["page_text"]: parts.append(f"本文:\n{d['page_text'][:2000]}")
+        if d["page_text"]: parts.append(f"本文:\n{d['page_text'][:4000]}")
         for j, (url, text) in enumerate(d["pdf_list"], 1):
-            parts.append(f"PDF{j}:\n{text[:800]}" if text else f"PDF{j}: {url}（取得不可）")
+            parts.append(f"PDF{j}:\n{text[:1500]}" if text else f"PDF{j}: {url}（取得不可）")
         blocks.append(f"=={idx}==\n" + "\n".join(parts))
 
     user_prompt = f"""以下の{len(items_data)}件のひたちなか市公式情報をそれぞれ詳しく整理してください。
@@ -259,7 +259,7 @@ def ai_summary_ibaraki(title, description):
 ・詳細ポイントを5〜7項目（数値・固有名詞を省略しない）
 
 タイトル: {title}
-記事冒頭: {description[:1000]}"""
+記事冒頭: {description[:1500]}"""
 
     result = groq_call(
         "茨城新聞記事を地方議員候補者向けに詳しく整理するアシスタントです。固有名詞・数値を省略せず記載します。",
@@ -341,9 +341,9 @@ def ai_batch_summary_national(items_data):
     blocks = []
     for idx, d in enumerate(items_data):
         parts = [f"タイトル: {d['title']}（情報源: {d.get('_source','')}）"]
-        if d["page_text"]: parts.append(f"本文:\n{d['page_text'][:1500]}")
+        if d["page_text"]: parts.append(f"本文:\n{d['page_text'][:4000]}")
         for j, (url, text) in enumerate(d["pdf_list"], 1):
-            parts.append(f"PDF{j}:\n{text[:600]}" if text else f"PDF{j}: {url}（取得不可）")
+            parts.append(f"PDF{j}:\n{text[:1500]}" if text else f"PDF{j}: {url}（取得不可）")
         blocks.append(f"=={idx}==\n" + "\n".join(parts))
 
     user_prompt = f"""以下の{len(items_data)}件の国政・県政情報をそれぞれ詳しく整理してください。
@@ -700,9 +700,11 @@ function switchTab(id, btn) {{
 </html>"""
 
 
-def process_items_batch(items, label):
+def process_items_batch(items, label, batch_size=3):
+    """3件ずつバッチ処理（テキスト量増加によるトークン超過を防ぐ）"""
     if not items:
         return []
+
     print(f"  {label} {len(items)}件 ページ取得中...")
     items_data = []
     for item in items:
@@ -711,12 +713,20 @@ def process_items_batch(items, label):
         items_data.append({"title": item["title"], "page_text": page_text, "pdf_list": pdf_list})
         print(f"    取得: {item['title'][:45]}")
 
-    print(f"  {label} {len(items)}件 AI要約中（バッチ）...")
-    summaries = ai_batch_summary(items_data)
+    # 3件ずつに分けてAI要約
+    all_summaries = {}
+    for start in range(0, len(items_data), batch_size):
+        chunk = items_data[start:start + batch_size]
+        print(f"  {label} AI要約中 ({start+1}〜{start+len(chunk)}件目)...")
+        chunk_summaries = ai_batch_summary(chunk)
+        for local_idx, summary in chunk_summaries.items():
+            all_summaries[start + local_idx] = summary
+        if start + batch_size < len(items_data):
+            time.sleep(8)
 
     cards = []
     for idx, item in enumerate(items):
-        summary = summaries.get(idx, "")
+        summary = all_summaries.get(idx, "")
         cards.append({
             "title": item["title"], "link": item["link"],
             "summary": summary, "summary_html": summary_to_html(summary), "label": label
