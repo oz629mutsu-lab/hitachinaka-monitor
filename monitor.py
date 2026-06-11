@@ -138,23 +138,25 @@ def ai_batch_summary(items_data):
     blocks = []
     for idx, d in enumerate(items_data):
         parts = [f"タイトル: {d['title']}"]
-        if d["page_text"]: parts.append(f"本文:\n{d['page_text'][:1200]}")
+        if d["page_text"]: parts.append(f"本文:\n{d['page_text'][:2000]}")
         for j, (url, text) in enumerate(d["pdf_list"], 1):
-            parts.append(f"PDF{j}:\n{text[:600]}" if text else f"PDF{j}: {url}（取得不可）")
+            parts.append(f"PDF{j}:\n{text[:800]}" if text else f"PDF{j}: {url}（取得不可）")
         blocks.append(f"=={idx}==\n" + "\n".join(parts))
 
-    user_prompt = f"""以下の{len(items_data)}件のひたちなか市公式情報をそれぞれ要約してください。
+    user_prompt = f"""以下の{len(items_data)}件のひたちなか市公式情報をそれぞれ詳しく整理してください。
 
 【絶対厳守ルール】
 - ※は一切使わない / 箇条書きは「・」のみ
-- 施設名・団体名・人名・地名・電話番号を省略せず正確に記載
-- 日程・金額・数値・対象者を必ず含める
-- 行政用語は平易な言葉に / 各記事600文字以内
+- 施設名・団体名・人名・地名・担当課・電話番号を省略せず正確に記載
+- 日程・期限・期間・金額・数量・数値・対象者・申請条件を必ず含める
+- 行政用語は平易な言葉に言い換える
+- ページ本文やPDFに書かれた具体的な内容をできる限り反映する
+- 各記事900文字以内
 
 【各記事の出力形式】
 ==0==
 1行目：何についての情報か（一文）
-・詳細ポイント5〜7項目
+・詳細ポイント6〜9項目（数値・固有名詞を省略しない）
 
 ==1==
 （以下同様）
@@ -163,8 +165,8 @@ def ai_batch_summary(items_data):
 {"".join(chr(10)*2 + b for b in blocks)}"""
 
     result = groq_call(
-        "ひたちなか市の複数の市政情報をまとめて要約するアシスタントです。固有名詞・数値を省略しません。",
-        user_prompt, max_tokens=2500, label="[バッチ]"
+        "ひたちなか市の複数の市政情報をまとめて要約するアシスタントです。固有名詞・数値・担当課情報を省略しません。",
+        user_prompt, max_tokens=3500, label="[バッチ]"
     )
     if not result:
         return {i: d["page_text"][:400] for i, d in enumerate(items_data)}
@@ -246,21 +248,22 @@ def ai_summary_ibaraki(title, description):
 【厳守ルール】
 - ※は一切使わない / 箇条書きは「・」のみ
 - 人名・地名・団体名・施設名などの固有名詞は省略せず正確に記載
-- 数値・金額・日程は必ず含める
+- 数値・金額・日程・統計・順位は必ず含める
 - 茨城県政・ひたちなか市政への影響・関連性があれば必ず補足
-- 600文字以内
+- 事件・事故の場合は場所・状況・被害規模を具体的に
+- 800文字以内
 
 【構成】
 1行目：何についての記事か（一文）
 空行
-・詳細ポイントを4〜6項目（省略なし）
+・詳細ポイントを5〜7項目（数値・固有名詞を省略しない）
 
 タイトル: {title}
-記事冒頭: {description[:800]}"""
+記事冒頭: {description[:1000]}"""
 
     result = groq_call(
         "茨城新聞記事を地方議員候補者向けに詳しく整理するアシスタントです。固有名詞・数値を省略せず記載します。",
-        prompt, max_tokens=900, label=f"[{title[:20]}]"
+        prompt, max_tokens=1100, label=f"[{title[:20]}]"
     )
     return result or description[:400]
 
@@ -293,12 +296,19 @@ def ai_digest_ibaraki(articles_with_desc):
 # ===== 国政・県政 RSS =====
 
 def fetch_generic_rss(url, max_items=15):
-    """汎用RSSフェッチ。Shift_JIS等の非UTF-8エンコーディングに対応"""
+    """汎用RSSフェッチ。RSS 1.0(名前空間あり)・RSS 2.0・Shift_JIS に対応"""
+    RSS1 = "http://purl.org/rss/1.0/"
+    DC   = "http://purl.org/dc/elements/1.1/"
+
+    def ft(elem, tag):
+        return (elem.findtext(tag) or
+                elem.findtext(f"{{{RSS1}}}{tag}") or
+                elem.findtext(f"{{{DC}}}{tag}") or "").strip()
+
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=30) as res:
             raw = res.read()
-        # XML宣言のエンコーディングを検出してUTF-8に変換
         enc_m = re.search(rb'encoding=["\']([^"\']+)["\']', raw[:300])
         if enc_m:
             enc = enc_m.group(1).decode('ascii', errors='replace')
@@ -306,13 +316,15 @@ def fetch_generic_rss(url, max_items=15):
                 decoded = raw.decode(enc, errors='replace')
                 raw = re.sub(r'encoding=["\'][^"\']+["\']', 'encoding="utf-8"', decoded).encode('utf-8')
         root = ET.fromstring(raw)
+        # RSS 2.0 は <item>、RSS 1.0 は {RSS1}item
+        elems = root.findall(".//item") or root.findall(f".//{{{RSS1}}}item")
         items = []
-        for i in root.findall(".//item")[:max_items]:
-            desc = re.sub(r'<[^>]+>', '', (i.findtext("description") or "")).strip()[:300]
+        for i in elems[:max_items]:
+            desc = re.sub(r'<[^>]+>', '', ft(i, "description")).strip()[:300]
             items.append({
-                "title":       (i.findtext("title") or "").strip(),
-                "link":        (i.findtext("link")  or "").strip(),
-                "pub_date":    (i.findtext("pubDate") or "").strip(),
+                "title":       ft(i, "title"),
+                "link":        ft(i, "link"),
+                "pub_date":    ft(i, "pubDate") or ft(i, "date"),
                 "description": desc,
             })
         return [i for i in items if i["title"]]
