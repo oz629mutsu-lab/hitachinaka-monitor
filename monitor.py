@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ひたちなか市ホームページ監視スクリプト v9 (国政・県政タブ追加)"""
+"""ひたちなか市ホームページ監視スクリプト v9.8 (農林水産省・NHK政治追加)"""
 
 import json, os, urllib.request, xml.etree.ElementTree as ET, io, re, time
 from datetime import datetime, timezone, timedelta
@@ -37,6 +37,8 @@ IBARAKI_PREF_RSS = [
 KANTEI_RSS_URL = "https://www.kantei.go.jp/index-jnews.rdf"
 SOUMU_RSS_URL  = "https://www.soumu.go.jp/news.rdf"
 CAO_RSS_URL    = "https://www.cao.go.jp/bunken-suishin/rss/news.rdf"
+MAFF_RSS_URL   = "https://www.maff.go.jp/rss.xml"
+NHK_SEIJI_RSS_URL = "https://www.nhk.or.jp/rss/news/cat4.xml"
 # Googleアラート: 環境変数 GOOGLE_ALERT_RSS_URLS にカンマ区切りでURLを設定
 GOOGLE_ALERT_RSS_URLS = [u.strip() for u in os.environ.get("GOOGLE_ALERT_RSS_URLS","").split(",") if u.strip()]
 
@@ -417,10 +419,12 @@ def ai_select_national_items(sources):
 - 茨城県・ひたちなか市に直接関わる内容
 
 【出力形式】（必ずこの形式で。他の文章は不要）
-茨城県 報道発表: 0,2
+茨城県 注目情報: 0,2
 首相官邸: 1,3,5
 総務省: 0,2,4
 内閣府 地方分権改革: 0,1
+農林水産省: 0,1
+NHK 政治: 0,2,4
 
 【ニュース一覧】
 {"".join(chr(10)*2 + b for b in blocks)}"""
@@ -481,6 +485,8 @@ def process_national_batch(sources):
         "首相官邸":         {"max_pdfs": 3,  "max_text": 4000},
         "総務省":           {"max_pdfs": 8,  "max_text": 4000},
         "内閣府 地方分権改革": {"max_pdfs": 8, "max_text": 4000},
+        "農林水産省":       {"max_pdfs": 8,  "max_text": 4000},
+        "NHK 政治":        {"max_pdfs": 0,  "max_text": 3000},
     }
 
     print(f"  国政・県政 {len(all_items)}件 ページ取得中...")
@@ -602,6 +608,7 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
         source_icons = {
             "茨城県 注目情報": "📌", "茨城県 防災情報": "🚨",
             "首相官邸": "🏛️", "総務省": "📋", "内閣府 地方分権改革": "🏢",
+            "農林水産省": "🌾", "NHK 政治": "📺",
         }
         html = ""
         for s in national_sources:
@@ -720,7 +727,7 @@ footer{{text-align:center;font-size:12px;color:#888;padding:24px;margin-top:16px
 </div>
 </div>
 
-<footer>自動生成 | <a href="https://www.city.hitachinaka.lg.jp/" target="_blank">ひたちなか市公式</a> | <a href="https://ibarakinews.jp/" target="_blank">茨城新聞</a> | <a href="https://www.pref.ibaraki.jp/" target="_blank">茨城県</a> | <a href="https://www.kantei.go.jp/" target="_blank">首相官邸</a> | <a href="https://www.soumu.go.jp/" target="_blank">総務省</a> | <a href="https://www.cao.go.jp/bunken-suishin/" target="_blank">内閣府 地方分権</a></footer>
+<footer>自動生成 | <a href="https://www.city.hitachinaka.lg.jp/" target="_blank">ひたちなか市公式</a> | <a href="https://ibarakinews.jp/" target="_blank">茨城新聞</a> | <a href="https://www.pref.ibaraki.jp/" target="_blank">茨城県</a> | <a href="https://www.kantei.go.jp/" target="_blank">首相官邸</a> | <a href="https://www.soumu.go.jp/" target="_blank">総務省</a> | <a href="https://www.cao.go.jp/bunken-suishin/" target="_blank">内閣府 地方分権</a> | <a href="https://www.maff.go.jp/" target="_blank">農林水産省</a> | <a href="https://www3.nhk.or.jp/news/" target="_blank">NHK</a></footer>
 
 <script>
 function switchTab(id, btn) {{
@@ -841,6 +848,16 @@ def main():
     cao_items = fetch_generic_rss(CAO_RSS_URL, max_items=10)
     national_sources.append({"name": "内閣府 地方分権改革", "items": cao_items})
     print(f"  内閣府 地方分権改革: {len(cao_items)}件")
+
+    # 農林水産省
+    maff_items = fetch_generic_rss(MAFF_RSS_URL, max_items=10)
+    national_sources.append({"name": "農林水産省", "items": maff_items})
+    print(f"  農林水産省: {len(maff_items)}件")
+
+    # NHK 政治
+    nhk_items = fetch_generic_rss(NHK_SEIJI_RSS_URL, max_items=15)
+    national_sources.append({"name": "NHK 政治", "items": nhk_items})
+    print(f"  NHK 政治: {len(nhk_items)}件")
 
     # Googleアラート（設定済みの場合のみ）
     for alert_url in GOOGLE_ALERT_RSS_URLS:
