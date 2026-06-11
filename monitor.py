@@ -662,11 +662,7 @@ def main():
         print("  国政・県政 AIダイジェスト生成中...")
         national_digest = ai_digest_national(national_sources)
 
-    # ===== HTML生成 =====
-    has_updates = bool(gikai or important or minor_24h or ib_local or ib_other or has_national)
-    if not has_updates:
-        print(f"{now:%Y-%m-%d %H:%M} 新着なし"); return
-
+    # ===== HTML生成（常時） =====
     html = build_html(
         gikai_cards, important_cards, minor_24h, now,
         ib_local_cards, ib_digest, ib_other,
@@ -679,7 +675,15 @@ def main():
     for i in ib_new:    seen.add(i["link"])
     save_seen(seen)
 
-    # LINE通知
+    # ===== LINE通知（本日未送信の場合のみ） =====
+    jst_now  = datetime.now(timezone.utc) + timedelta(hours=9)
+    today    = jst_now.strftime("%Y-%m-%d")
+    sent_file = Path("last_line_sent.txt")
+    if sent_file.exists() and sent_file.read_text().strip() == today:
+        print(f"本日({today})のLINE送信済み。スキップします。")
+        print(f"{now:%Y-%m-%d %H:%M} 完了（LINE送信スキップ）")
+        return
+
     counts = []
     if gikai:         counts.append(f"議会{len(gikai)}件")
     if important:     counts.append(f"重要{len(important)}件")
@@ -692,8 +696,7 @@ def main():
     summary_line = "・".join(counts) if counts else "更新あり"
 
     # 8:05 JST まで待機
-    jst_now = datetime.now(timezone.utc) + timedelta(hours=9)
-    target  = jst_now.replace(hour=8, minute=5, second=0, microsecond=0)
+    target = jst_now.replace(hour=8, minute=5, second=0, microsecond=0)
     if jst_now < target:
         wait_sec = (target - jst_now).total_seconds()
         print(f"  8:05 JST まで {wait_sec:.0f}秒 待機中...")
@@ -702,6 +705,7 @@ def main():
     send_time = (datetime.now(timezone.utc) + timedelta(hours=9)).strftime("%m/%d %H:%M")
     msg = f"【ひたちなか市・茨城新聞・国政県政 更新情報】{send_time}\n{summary_line}\n\n{PAGES_URL}"
     send_line(msg)
+    sent_file.write_text(today)
     print(f"✓ LINE送信: {msg}")
     print(f"{now:%Y-%m-%d %H:%M} 完了 — 議会:{len(gikai)} 重要:{len(important)} 軽微:{len(minor_24h)} 茨城新聞:{len(ib_new)} 国政県政:{sum(len(s['items']) for s in national_sources)}")
 
