@@ -178,12 +178,12 @@ def ai_batch_summary(items_data):
         user_prompt, max_tokens=3500, label="[バッチ]"
     )
     if not result:
-        return {i: d["page_text"][:400] for i, d in enumerate(items_data)}
+        return {i: "" for i in range(len(items_data))}
 
     summaries = {}
     for idx in range(len(items_data)):
         m = re.search(rf"=={idx}==\s*(.*?)(?===\d+==|$)", result, re.DOTALL)
-        summaries[idx] = m.group(1).strip() if m else items_data[idx]["page_text"][:400]
+        summaries[idx] = m.group(1).strip() if m else ""
     return summaries
 
 
@@ -343,9 +343,9 @@ def fetch_generic_rss(url, max_items=15):
 
 
 def ai_batch_summary_national(items_data):
-    """国政・県政記事を1回のAPIコールでまとめて要約"""
+    """国政・県政記事を1回のAPIコールでまとめて要約（最大3件推奨）"""
     if not GROQ_API_KEY:
-        return {i: d["page_text"][:400] for i, d in enumerate(items_data)}
+        return {i: "" for i in range(len(items_data))}
 
     blocks = []
     for idx, d in enumerate(items_data):
@@ -381,12 +381,12 @@ def ai_batch_summary_national(items_data):
         user_prompt, max_tokens=3000, label="[国政バッチ]"
     )
     if not result:
-        return {i: d["page_text"][:400] for i, d in enumerate(items_data)}
+        return {i: "" for i in range(len(items_data))}
 
     summaries = {}
     for idx in range(len(items_data)):
         m = re.search(rf"=={idx}==\s*(.*?)(?===\d+==|$)", result, re.DOTALL)
-        summaries[idx] = m.group(1).strip() if m else items_data[idx]["page_text"][:400]
+        summaries[idx] = m.group(1).strip() if m else ""
     return summaries
 
 
@@ -501,14 +501,26 @@ def process_national_batch(sources):
         print(f"    取得: {item['title'][:45]}")
         time.sleep(1)
 
-    # Step3: AI詳細要約
-    time.sleep(5)
-    print(f"  国政・県政 {len(all_items)}件 AI詳細要約中...")
-    summaries = ai_batch_summary_national(items_data)
+    # Step3: AI詳細要約（3件ずつ分割してトークン超過を防ぐ）
+    CHUNK = 3
+    all_summaries = {}
+    for start in range(0, len(items_data), CHUNK):
+        chunk = items_data[start:start + CHUNK]
+        time.sleep(5)
+        print(f"  国政・県政 AI要約中 ({start+1}〜{start+len(chunk)}件目)...")
+        chunk_summaries = ai_batch_summary_national(chunk)
+        for local_idx, summary in chunk_summaries.items():
+            all_summaries[start + local_idx] = summary
+        if start + CHUNK < len(items_data):
+            time.sleep(10)
 
     cards_by_source = {}
     for idx, item in enumerate(all_items):
-        summary = summaries.get(idx, "")
+        summary = all_summaries.get(idx, "")
+        # AI失敗時はタイトル＋RSS descriptionをフォールバックにする
+        if not summary:
+            desc = item.get("description", "")
+            summary = f"（AI要約失敗）{desc[:200]}" if desc else "（情報取得中）"
         card = {
             "title": item["title"], "link": item["link"],
             "summary": summary, "summary_html": summary_to_html(summary)
