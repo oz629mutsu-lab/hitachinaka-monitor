@@ -333,38 +333,90 @@ def fetch_generic_rss(url, max_items=15):
         return []
 
 
-def ai_digest_national(sources):
-    """国政・県政ソースの一括ダイジェスト
-    sources: [{name, items:[{title,link,description}]}]
-    """
+def ai_batch_summary_national(items_data):
+    """国政・県政記事を1回のAPIコールでまとめて要約"""
     if not GROQ_API_KEY:
-        return ""
-    blocks = []
-    for s in sources:
-        if not s["items"]: continue
-        lines = "\n".join(
-            f"・{i['title']}" + (f"（{i['description'][:100]}）" if i.get('description') else "")
-            for i in s["items"][:8]
-        )
-        blocks.append(f"【{s['name']}】\n{lines}")
-    if not blocks:
-        return ""
-    prompt = f"""以下の国政・県政ニュースを地方議員候補者の視点で整理してください。
+        return {i: d["page_text"][:400] for i, d in enumerate(items_data)}
 
-【ルール】
-- 箇条書きは「・」のみ、※不使用
-- 地方自治・住民生活・財政・選挙・防災に関するトピックを優先
-- 各情報源について必ず触れる
-- 固有名詞・数値は省略せず記載
-- 700文字以内
+    blocks = []
+    for idx, d in enumerate(items_data):
+        parts = [f"タイトル: {d['title']}（情報源: {d.get('_source','')}）"]
+        if d["page_text"]: parts.append(f"本文:\n{d['page_text'][:1500]}")
+        for j, (url, text) in enumerate(d["pdf_list"], 1):
+            parts.append(f"PDF{j}:\n{text[:600]}" if text else f"PDF{j}: {url}（取得不可）")
+        blocks.append(f"=={idx}==\n" + "\n".join(parts))
+
+    user_prompt = f"""以下の{len(items_data)}件の国政・県政情報をそれぞれ詳しく整理してください。
+
+【絶対厳守ルール】
+- ※は一切使わない / 箇条書きは「・」のみ
+- 機関名・担当者・人名・地名・団体名を省略せず正確に記載
+- 数値・金額・期日・対象・規模を必ず含める
+- 地方自治・住民生活・選挙・財政への影響を補足
+- 各記事700文字以内
+
+【各記事の出力形式】
+==0==
+1行目：何についての情報か（一文）
+・詳細ポイント5〜7項目
+
+==1==
+（以下同様）
 
 【情報】
 {"".join(chr(10)*2 + b for b in blocks)}"""
 
-    return groq_call(
-        "国政・県政情報を地方議員候補者向けにまとめるアシスタントです。固有名詞・数値を省略しません。",
-        prompt, max_tokens=1000, label="[国政県政]"
+    result = groq_call(
+        "国政・県政情報を地方議員候補者向けに詳しく整理するアシスタントです。固有名詞・数値を省略しません。",
+        user_prompt, max_tokens=3000, label="[国政バッチ]"
     )
+    if not result:
+        return {i: d["page_text"][:400] for i, d in enumerate(items_data)}
+
+    summaries = {}
+    for idx in range(len(items_data)):
+        m = re.search(rf"=={idx}==\s*(.*?)(?===\d+==|$)", result, re.DOTALL)
+        summaries[idx] = m.group(1).strip() if m else items_data[idx]["page_text"][:400]
+    return summaries
+
+
+def process_national_batch(sources):
+    """各ソースの上位3件をページ取得→AIバッチ要約してカードを返す"""
+    all_items = []
+    for s in sources:
+        for item in s["items"][:3]:
+            all_items.append({**item, "_source": s["name"]})
+
+    if not all_items:
+        return {}
+
+    print(f"  国政・県政 {len(all_items)}件 ページ取得中...")
+    items_data = []
+    for item in all_items:
+        page_text, pdf_links = fetch_page(item["link"])
+        pdf_list = [(url, fetch_pdf(url)) for url in pdf_links[:2]]
+        items_data.append({
+            "title": item["title"], "page_text": page_text,
+            "pdf_list": pdf_list, "_source": item["_source"]
+        })
+        print(f"    取得: {item['title'][:45]}")
+        time.sleep(1)
+
+    time.sleep(5)
+    print(f"  国政・県政 {len(all_items)}件 AI要約中...")
+    summaries = ai_batch_summary_national(items_data)
+
+    # source_name → cards のdict
+    cards_by_source = {}
+    for idx, item in enumerate(all_items):
+        summary = summaries.get(idx, "")
+        card = {
+            "title": item["title"], "link": item["link"],
+            "summary": summary, "summary_html": summary_to_html(summary)
+        }
+        src = item["_source"]
+        cards_by_source.setdefault(src, []).append(card)
+    return cards_by_source
 
 
 # ===== HTML生成 =====
@@ -399,7 +451,7 @@ def summary_to_html(text):
 
 def build_html(gikai_cards, important_cards, minor_items, generated_at,
                ibaraki_local_cards=None, ibaraki_digest="", ibaraki_all=None,
-               national_digest="", national_sources=None):
+               national_sources=None, national_cards_by_source=None):
     jst = generated_at + timedelta(hours=9)
     date_str = jst.strftime("%Y年%m月%d日 %H:%M")
 
@@ -439,26 +491,37 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
     def national_section_html():
         if not national_sources:
             return '<p class="empty">本日の国政・県政情報はありません</p>'
-        html = ""
-        # AIダイジェストカード
-        if national_digest:
-            html += f'<div class="card" style="border-left:4px solid #4527A0"><div class="card-summary">{summary_to_html(national_digest)}</div></div>'
-        # ソース別リスト
         source_icons = {
             "茨城県 報道発表": "🌿", "茨城県 注目情報": "📌", "茨城県 防災情報": "🚨",
             "首相官邸": "🏛️", "総務省": "📋", "内閣府 地方分権改革": "🏢",
         }
+        html = ""
         for s in national_sources:
             if not s["items"]: continue
             icon = source_icons.get(s["name"], "🔍")
             html += f'<h3 class="src-heading">{icon} {esc(s["name"])}</h3>'
-            rows = "".join(
-                f'<tr><td><a href="{esc(i["link"])}" target="_blank">{esc(i["title"])}</a>'
-                + (f'<div class="item-desc">{esc(i["description"])}</div>' if i.get("description") else "")
-                + '</td></tr>\n'
-                for i in s["items"]
-            )
-            html += f'<table><tbody>{rows}</tbody></table>'
+            top_cards = (national_cards_by_source or {}).get(s["name"], [])
+            # 上位3件はAI要約カード
+            for card in top_cards:
+                html += f"""
+<div class="card" style="border-left:4px solid #4527A0">
+  <div class="card-title"><a href="{esc(card['link'])}" target="_blank">{esc(card['title'])}</a></div>
+  <div class="card-summary">{card['summary_html']}</div>
+  <div class="card-meta">
+    <span class="tag" style="background:#4527A0">{esc(s["name"])}</span>
+    <a href="{esc(card['link'])}" target="_blank" class="src-link">公式ページを見る →</a>
+  </div>
+</div>"""
+            # 4件目以降はリスト表示
+            rest = s["items"][len(top_cards):]
+            if rest:
+                rows = "".join(
+                    f'<tr><td><a href="{esc(i["link"])}" target="_blank">{esc(i["title"])}</a>'
+                    + (f'<div class="item-desc">{esc(i["description"])}</div>' if i.get("description") else "")
+                    + '</td></tr>\n'
+                    for i in rest
+                )
+                html += f'<table><tbody>{rows}</tbody></table>'
         return html or '<p class="empty">本日の国政・県政情報はありません</p>'
 
     return f"""<!DOCTYPE html>
@@ -666,19 +729,17 @@ def main():
         national_sources.append({"name": "Googleアラート", "items": alert_items})
         print(f"  Googleアラート: {len(alert_items)}件")
 
-    # 国政・県政の一括AIダイジェスト
+    # 国政・県政: 上位3件をページ取得→AI要約
     has_national = any(s["items"] for s in national_sources)
-    national_digest = ""
+    national_cards_by_source = {}
     if has_national:
-        time.sleep(5)
-        print("  国政・県政 AIダイジェスト生成中...")
-        national_digest = ai_digest_national(national_sources)
+        national_cards_by_source = process_national_batch(national_sources)
 
     # ===== HTML生成（常時） =====
     html = build_html(
         gikai_cards, important_cards, minor_24h, now,
         ib_local_cards, ib_digest, ib_other,
-        national_digest, national_sources
+        national_sources, national_cards_by_source
     )
     HTML_FILE.write_text(html, encoding="utf-8")
     print(f"✓ {HTML_FILE} 生成完了")
