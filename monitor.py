@@ -240,12 +240,15 @@ def within_24h(pub_date_str):
     except: return True
 
 def send_line(message):
-    requests.post(
+    res = requests.post(
         "https://api.line.me/v2/bot/message/push",
         headers={"Authorization": f"Bearer {LINE_TOKEN}"},
         json={"to": LINE_USER_ID, "messages": [{"type":"text","text":message[:4500]}]},
         timeout=30
     )
+    print(f"  LINE APIレスポンス: HTTP {res.status_code} / {res.text[:200]}")
+    if res.status_code != 200:
+        raise RuntimeError(f"LINE送信失敗: {res.status_code} {res.text[:200]}")
 
 
 # ===== 茨城新聞 =====
