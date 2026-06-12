@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ひたちなか市ホームページ監視スクリプト v9.8 (農林水産省・NHK政治追加)"""
+"""ひたちなか市ホームページ監視スクリプト v9.9 (省庁スクレイピング・国会会議録API追加)"""
 
 import json, os, urllib.request, xml.etree.ElementTree as ET, io, re, time
 from datetime import datetime, timezone, timedelta
@@ -41,6 +41,31 @@ MAFF_RSS_URL   = "https://www.maff.go.jp/rss.xml"
 NHK_SEIJI_RSS_URL = "https://www.nhk.or.jp/rss/news/cat4.xml"
 # Googleアラート: 環境変数 GOOGLE_ALERT_RSS_URLS にカンマ区切りでURLを設定
 GOOGLE_ALERT_RSS_URLS = [u.strip() for u in os.environ.get("GOOGLE_ALERT_RSS_URLS","").split(",") if u.strip()]
+
+# 省庁スクレイピング設定（月別プレスリリースページ）
+MINISTRY_SCRAPE_SOURCES = [
+    {
+        "name": "国土交通省",
+        "url_template": "https://www.mlit.go.jp/report/press/houdou{yyyymm}.html",
+        "base_url": "https://www.mlit.go.jp",
+        "link_pattern": r'/report/press/[a-z]+\d{2}_hh_\d+\.html',
+    },
+    {
+        "name": "厚生労働省",
+        "url_template": "https://www.mhlw.go.jp/stf/houdou/houdou_list_{yyyymm}.html",
+        "base_url": "https://www.mhlw.go.jp",
+        "link_pattern": r'/stf/houdou/(?:\d{7,}|newpage_\d+|0000[\w_]+)\.html',
+    },
+    {
+        "name": "環境省",
+        "url_template": "https://www.env.go.jp/press/{yyyymm}.html",
+        "base_url": "https://www.env.go.jp",
+        "link_pattern": r'/press/press_\d+\.html',
+    },
+]
+
+# 国会会議録 検索キーワード
+KOKKAI_KEYWORDS = ["ひたちなか", "那珂湊", "茨城県 地方自治"]
 
 
 class SmartParser(HTMLParser):
@@ -303,6 +328,91 @@ def ai_digest_ibaraki(articles_with_desc):
     return result or ""
 
 
+# ===== 省庁スクレイピング =====
+
+def fetch_scraped_ministry(source_cfg, seen=None, max_items=12):
+    """月別プレスリリースページをスクレイピングし、新着記事を返す"""
+    now = datetime.now(timezone.utc) + timedelta(hours=9)
+    yyyymm = f"{now.year}{now.month:02d}"
+    url = source_cfg["url_template"].format(yyyymm=yyyymm)
+    base_url = source_cfg["base_url"]
+    pattern = source_cfg["link_pattern"]
+
+    try:
+        res = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=15)
+        res.encoding = res.apparent_encoding or "utf-8"
+        seen_links = set()
+        items = []
+        for m in re.finditer(rf'href="({pattern})"', res.text):
+            link_path = m.group(1)
+            full_link = base_url + link_path if not link_path.startswith("http") else link_path
+            if full_link in seen_links:
+                continue
+            seen_links.add(full_link)
+            if seen and full_link in seen:
+                continue
+            # タイトルを抽出（リンク直後のテキスト）
+            title_m = re.search(rf'href="{re.escape(link_path)}"[^>]*>([^<]{{5,}})', res.text)
+            title = re.sub(r'\s+', ' ', title_m.group(1)).strip() if title_m else ""
+            if len(title) < 5:
+                continue
+            items.append({"title": title, "link": full_link, "pub_date": "", "description": ""})
+            if len(items) >= max_items:
+                break
+        return items
+    except Exception as e:
+        print(f"  スクレイピング失敗 ({url[:55]}): {e}")
+        return []
+
+
+# ===== 国会会議録API =====
+
+def fetch_kokkai_speeches(days_back=14):
+    """国会会議録APIでひたちなか・茨城関連発言を検索（過去days_back日）"""
+    since = (datetime.now(timezone.utc) + timedelta(hours=9) - timedelta(days=days_back)).strftime("%Y-%m-%d")
+    speeches = []
+    seen_urls = set()
+
+    for keyword in KOKKAI_KEYWORDS:
+        try:
+            res = requests.get(
+                "https://kokkai.ndl.go.jp/api/speech",
+                params={"any": keyword, "from": since, "recordPacking": "json",
+                        "maximumRecords": 4, "startRecord": 1},
+                timeout=15
+            )
+            for rec in res.json().get("speechRecord", []):
+                url = rec.get("speechURL", "")
+                if url in seen_urls:
+                    continue
+                seen_urls.add(url)
+                speech_text = rec.get("speech", "")
+                # キーワード周辺の抜粋を作成
+                idx = speech_text.find(keyword)
+                if idx >= 0:
+                    start = max(0, idx - 40)
+                    end = min(len(speech_text), idx + 200)
+                    excerpt = "…" + re.sub(r'\s+', ' ', speech_text[start:end]) + "…"
+                else:
+                    excerpt = re.sub(r'\s+', ' ', speech_text[:200])
+                speeches.append({
+                    "keyword": keyword,
+                    "date": rec.get("date", ""),
+                    "house": rec.get("nameOfHouse", ""),
+                    "meeting": rec.get("nameOfMeeting", ""),
+                    "speaker": rec.get("speaker", ""),
+                    "excerpt": excerpt,
+                    "link": url,
+                })
+            time.sleep(1)
+        except Exception as e:
+            print(f"  国会会議録API失敗({keyword}): {e}")
+
+    # 日付降順でソートして最大10件
+    speeches.sort(key=lambda x: x["date"], reverse=True)
+    return speeches[:10]
+
+
 # ===== 国政・県政 RSS =====
 
 def fetch_generic_rss(url, max_items=15):
@@ -487,6 +597,9 @@ def process_national_batch(sources):
         "内閣府 地方分権改革": {"max_pdfs": 8, "max_text": 4000},
         "農林水産省":       {"max_pdfs": 8,  "max_text": 4000},
         "NHK 政治":        {"max_pdfs": 0,  "max_text": 3000},
+        "国土交通省":       {"max_pdfs": 5,  "max_text": 4000},
+        "厚生労働省":       {"max_pdfs": 5,  "max_text": 4000},
+        "環境省":           {"max_pdfs": 3,  "max_text": 3000},
     }
 
     print(f"  国政・県政 {len(all_items)}件 ページ取得中...")
@@ -565,7 +678,8 @@ def summary_to_html(text):
 
 def build_html(gikai_cards, important_cards, minor_items, generated_at,
                ibaraki_local_cards=None, ibaraki_digest="", ibaraki_all=None,
-               national_sources=None, national_cards_by_source=None):
+               national_sources=None, national_cards_by_source=None,
+               kokkai_speeches=None):
     jst = generated_at + timedelta(hours=9)
     date_str = jst.strftime("%Y年%m月%d日 %H:%M")
 
@@ -609,6 +723,7 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
             "茨城県 注目情報": "📌", "茨城県 防災情報": "🚨",
             "首相官邸": "🏛️", "総務省": "📋", "内閣府 地方分権改革": "🏢",
             "農林水産省": "🌾", "NHK 政治": "📺",
+            "国土交通省": "🏗️", "厚生労働省": "🏥", "環境省": "🌿",
         }
         html = ""
         for s in national_sources:
@@ -639,6 +754,28 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
                 html += f'<table><tbody>{rows}</tbody></table>'
         return html or '<p class="empty">本日の国政・県政情報はありません</p>'
 
+    def kokkai_section_html():
+        if not kokkai_speeches:
+            return '<p class="empty">過去14日間のひたちなか・茨城関連発言はありません</p>'
+        html = ""
+        for sp in kokkai_speeches:
+            date_disp = sp["date"].replace("-", "/") if sp["date"] else ""
+            meta = f'{date_disp}　{esc(sp["house"])}　{esc(sp["meeting"])}　{esc(sp["speaker"])}'
+            keyword_tag = f'<span class="tag" style="background:#00695C">🔍 {esc(sp["keyword"])}</span>'
+            html += f"""
+<div class="card" style="border-left:4px solid #00695C">
+  <div class="card-title"><a href="{esc(sp['link'])}" target="_blank">{esc(sp['meeting'])} — {esc(sp['speaker'])}</a></div>
+  <div class="card-summary">
+    <p style="color:#555;font-size:13px">{meta}</p>
+    <p>{esc(sp['excerpt'])}</p>
+  </div>
+  <div class="card-meta">
+    {keyword_tag}
+    <a href="{esc(sp['link'])}" target="_blank" class="src-link">会議録を見る →</a>
+  </div>
+</div>"""
+        return html
+
     return f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -665,7 +802,7 @@ h2{{font-size:15px;font-weight:700;padding:8px 0 6px;border-bottom:2px solid cur
 h3.src-heading{{font-size:14px;font-weight:700;margin:16px 0 8px;color:#4527A0}}
 h2.gikai{{color:#C62828}} h2.important{{color:#E65100}} h2.minor{{color:#546E7A}}
 h2.ibaraki{{color:#1B5E20}} h2.ibaraki-all{{color:#2E7D32}}
-h2.national{{color:#4527A0}}
+h2.national{{color:#4527A0}} h2.kokkai{{color:#00695C}}
 .card{{background:#fff;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}}
 .card-title{{font-weight:700;font-size:15px;margin-bottom:8px}}
 .card-title a{{color:#1565C0;text-decoration:none}}
@@ -724,6 +861,9 @@ footer{{text-align:center;font-size:12px;color:#888;padding:24px;margin-top:16px
 <div class="container">
 <h2 class="national">🏢 国政・県政 最新情報</h2>
 {national_section_html()}
+
+<h2 class="kokkai">📜 国会会議録（ひたちなか・茨城関連）</h2>
+{kokkai_section_html()}
 </div>
 </div>
 
@@ -865,23 +1005,41 @@ def main():
         national_sources.append({"name": "Googleアラート", "items": alert_items})
         print(f"  Googleアラート: {len(alert_items)}件")
 
+    # 省庁スクレイピング（月別プレスリリース）
+    print("省庁スクレイピング中...")
+    for src_cfg in MINISTRY_SCRAPE_SOURCES:
+        scraped = fetch_scraped_ministry(src_cfg, seen=seen, max_items=10)
+        national_sources.append({"name": src_cfg["name"], "items": scraped})
+        print(f"  {src_cfg['name']}: {len(scraped)}件（新着）")
+
     # 国政・県政: 上位3件をページ取得→AI要約
     has_national = any(s["items"] for s in national_sources)
     national_cards_by_source = {}
     if has_national:
         national_cards_by_source = process_national_batch(national_sources)
 
+    # 国会会議録API
+    print("国会会議録API 検索中...")
+    kokkai_speeches = fetch_kokkai_speeches(days_back=14)
+    print(f"  国会会議録: {len(kokkai_speeches)}件")
+
     # ===== HTML生成（常時） =====
     html = build_html(
         gikai_cards, important_cards, minor_24h, now,
         ib_local_cards, ib_digest, ib_other,
-        national_sources, national_cards_by_source
+        national_sources, national_cards_by_source,
+        kokkai_speeches
     )
     HTML_FILE.write_text(html, encoding="utf-8")
     print(f"✓ {HTML_FILE} 生成完了")
 
     for i in new_items: seen.add(i["link"])
     for i in ib_new:    seen.add(i["link"])
+    # スクレイピング記事もseen.jsonに追加（翌日以降の重複防止）
+    for s in national_sources:
+        if s["name"] in {c["name"] for c in MINISTRY_SCRAPE_SOURCES}:
+            for item in s["items"]:
+                seen.add(item["link"])
     save_seen(seen)
 
     # ===== LINE通知（本日未送信の場合のみ） =====
