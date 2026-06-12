@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ひたちなか市ホームページ監視スクリプト v9.9 (省庁スクレイピング・国会会議録API追加)"""
+"""ひたちなか市ホームページ監視スクリプト v10.0 (Gemini Flash AI・seen.json TTL追加)"""
 
 import json, os, urllib.request, xml.etree.ElementTree as ET, io, re, time
 from datetime import datetime, timezone, timedelta
@@ -15,7 +15,10 @@ PAGES_URL       = "https://oz629mutsu-lab.github.io/hitachinaka-monitor/"
 LINE_TOKEN      = os.environ.get("LINE_TOKEN", "")
 LINE_USER_ID    = os.environ.get("LINE_USER_ID", "")
 GROQ_API_KEY    = os.environ.get("GROQ_API_KEY", "")
+GEMINI_API_KEY  = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_URL      = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent"
 STATE_FILE      = Path("seen.json")
+SEEN_EXPIRE_DAYS = 30
 HTML_FILE       = Path("docs/index.html")
 
 HITACHINAKA_KEYWORDS = ["ひたちなか", "那珂湊", "勝田", "常陸那珂"]
@@ -165,9 +168,45 @@ def groq_call(system, user, max_tokens=900, label=""):
     return ""
 
 
+def gemini_call(system, user, max_tokens=900, label=""):
+    """Gemini Flash (無料 1M TPM)。失敗時のみGroqにフォールバック"""
+    for attempt in range(3):
+        try:
+            payload = {
+                "systemInstruction": {"parts": [{"text": system}]},
+                "contents": [{"role": "user", "parts": [{"text": user}]}],
+                "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.1}
+            }
+            res = requests.post(
+                f"{GEMINI_URL}?key={GEMINI_API_KEY}",
+                json=payload, timeout=60
+            )
+            data = res.json()
+            if "candidates" in data:
+                return data["candidates"][0]["content"]["parts"][0]["text"]
+            err = data.get("error", {}).get("message", str(data))
+            print(f"  Geminiエラー{label}(試行{attempt+1}): {err[:120]}")
+            time.sleep(5)
+        except Exception as e:
+            print(f"  Gemini例外{label}(試行{attempt+1}): {e}"); time.sleep(5)
+    if GROQ_API_KEY:
+        print(f"  Gemini全失敗 → Groqフォールバック{label}")
+        return groq_call(system, user, max_tokens=max_tokens, label=label)
+    return ""
+
+
+def ai_call(system, user, max_tokens=900, label=""):
+    """AI統合エントリ: Gemini優先 → Groqフォールバック"""
+    if GEMINI_API_KEY:
+        return gemini_call(system, user, max_tokens=max_tokens, label=label)
+    if GROQ_API_KEY:
+        return groq_call(system, user, max_tokens=max_tokens, label=label)
+    return ""
+
+
 def ai_batch_summary(items_data):
     """複数記事を1回のAPIコールでまとめて要約"""
-    if not GROQ_API_KEY:
+    if not GEMINI_API_KEY and not GROQ_API_KEY:
         return {i: d["page_text"][:400] for i, d in enumerate(items_data)}
 
     blocks = []
@@ -199,7 +238,7 @@ def ai_batch_summary(items_data):
 【情報】
 {"".join(chr(10)*2 + b for b in blocks)}"""
 
-    result = groq_call(
+    result = ai_call(
         "ひたちなか市の複数の市政情報をまとめて要約するアシスタントです。固有名詞・数値・担当課情報を省略しません。",
         user_prompt, max_tokens=3500, label="[バッチ]"
     )
@@ -214,10 +253,21 @@ def ai_batch_summary(items_data):
 
 
 def load_seen():
-    return set(json.loads(STATE_FILE.read_text())) if STATE_FILE.exists() else set()
+    """seen.jsonをdictで読み込む。旧list形式→dict自動変換、30日超えエントリ自動削除"""
+    if not STATE_FILE.exists():
+        return {}
+    raw = json.loads(STATE_FILE.read_text())
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if isinstance(raw, list):
+        return {url: today for url in raw}
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=SEEN_EXPIRE_DAYS)).strftime("%Y-%m-%d")
+    return {url: date for url, date in raw.items() if date >= cutoff}
 
 def save_seen(seen):
-    STATE_FILE.write_text(json.dumps(list(seen), ensure_ascii=False, indent=2))
+    STATE_FILE.write_text(json.dumps(seen, ensure_ascii=False, indent=2))
+
+def mark_seen(url, seen):
+    seen[url] = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 def fetch_rss():
     req = urllib.request.Request(RSS_URL, headers={"User-Agent":"Mozilla/5.0"})
@@ -279,7 +329,7 @@ def fetch_og_description(url):
         print(f"  og:description取得失敗: {e}"); return ""
 
 def ai_summary_ibaraki(title, description):
-    if not GROQ_API_KEY or not description:
+    if not (GEMINI_API_KEY or GROQ_API_KEY) or not description:
         return description or "（本文取得不可）"
     prompt = f"""以下の茨城新聞記事を地方議員候補者向けに詳しく整理してください。
 
@@ -299,14 +349,14 @@ def ai_summary_ibaraki(title, description):
 タイトル: {title}
 記事冒頭: {description[:1500]}"""
 
-    result = groq_call(
+    result = ai_call(
         "茨城新聞記事を地方議員候補者向けに詳しく整理するアシスタントです。固有名詞・数値を省略せず記載します。",
         prompt, max_tokens=1100, label=f"[{title[:20]}]"
     )
     return result or description[:400]
 
 def ai_digest_ibaraki(articles_with_desc):
-    if not GROQ_API_KEY or not articles_with_desc:
+    if not (GEMINI_API_KEY or GROQ_API_KEY) or not articles_with_desc:
         return ""
     lines = "\n".join([
         f"【{a['title']}】\n{a.get('desc','')[:300]}" if a.get('desc') else f"【{a['title']}】"
@@ -324,7 +374,7 @@ def ai_digest_ibaraki(articles_with_desc):
 【記事一覧】
 {lines}"""
 
-    result = groq_call(
+    result = ai_call(
         "茨城新聞のニュースを地方議員候補者向けに詳しくまとめるアシスタントです。",
         prompt, max_tokens=900, label="[ダイジェスト]"
     )
@@ -458,7 +508,7 @@ def fetch_generic_rss(url, max_items=15):
 
 def ai_batch_summary_national(items_data):
     """国政・県政記事を1回のAPIコールでまとめて要約（最大3件推奨）"""
-    if not GROQ_API_KEY:
+    if not (GEMINI_API_KEY or GROQ_API_KEY):
         return {i: "" for i in range(len(items_data))}
 
     blocks = []
@@ -490,7 +540,7 @@ def ai_batch_summary_national(items_data):
 【情報】
 {"".join(chr(10)*2 + b for b in blocks)}"""
 
-    result = groq_call(
+    result = ai_call(
         "国政・県政情報を地方議員候補者向けに詳しく整理するアシスタントです。固有名詞・数値を省略しません。",
         user_prompt, max_tokens=3000, label="[国政バッチ]"
     )
@@ -506,7 +556,7 @@ def ai_batch_summary_national(items_data):
 
 def ai_select_national_items(sources):
     """各ソースのRSSタイトル・説明からAIが重要記事を選択。{source_name: [index,...]} を返す"""
-    if not GROQ_API_KEY:
+    if not (GEMINI_API_KEY or GROQ_API_KEY):
         return {s["name"]: list(range(min(3, len(s["items"])))) for s in sources}
 
     blocks = []
@@ -542,7 +592,7 @@ NHK 政治: 0,2,4
 【ニュース一覧】
 {"".join(chr(10)*2 + b for b in blocks)}"""
 
-    result = groq_call(
+    result = ai_call(
         "国政・県政ニュースから地方議員候補者に重要な記事を選ぶアシスタントです。",
         prompt, max_tokens=300, label="[重要度選択]"
     )
@@ -1036,13 +1086,13 @@ def main():
     HTML_FILE.write_text(html, encoding="utf-8")
     print(f"✓ {HTML_FILE} 生成完了")
 
-    for i in new_items: seen.add(i["link"])
-    for i in ib_new:    seen.add(i["link"])
+    for i in new_items: mark_seen(i["link"], seen)
+    for i in ib_new:    mark_seen(i["link"], seen)
     # スクレイピング記事もseen.jsonに追加（翌日以降の重複防止）
     for s in national_sources:
         if s["name"] in {c["name"] for c in MINISTRY_SCRAPE_SOURCES}:
             for item in s["items"]:
-                seen.add(item["link"])
+                mark_seen(item["link"], seen)
     save_seen(seen)
 
     # ===== LINE通知（本日未送信の場合のみ） =====
@@ -1082,3 +1132,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
