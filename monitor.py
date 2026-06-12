@@ -761,16 +761,18 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
         i = _ci[0]; _ci[0] += 1
         cid = f"c{i}"
         has = bool(summary_html and summary_html.strip())
-        hcls = "card-head ex" if has else "card-head"
-        hx   = f' data-t="{cid}" onclick="tgl(this)"' if has else ''
-        chev = '<span class="chev">›</span>' if has else ''
-        body = f'<div class="card-body" id="{cid}" hidden>{summary_html}</div>' if has else ''
+        icls = "c-in ex" if has else "c-in"
+        ix   = f' data-t="{cid}" onclick="tgl(this)"' if has else ''
+        exp  = '<span class="exp-btn"><span class="chv">›</span>要約</span>' if has else ''
+        body = f'<div class="c-body" id="{cid}" hidden>{summary_html}</div>' if has else ''
         return f'''<div class="card" style="--ac:{accent}">
-  <div class="{hcls}"{hx}>
-    <div class="ctitle"><a href="{esc(link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">{esc(title)}</a></div>
-    <div class="cacts">{chev}<a href="{esc(link)}" target="_blank" rel="noopener" class="bout" onclick="event.stopPropagation()">↗</a></div>
+  <div class="{icls}"{ix}>
+    <div class="c-ttl"><a href="{esc(link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">{esc(title)}</a></div>
+    <div class="c-ft">
+      <span class="chip" style="--cc:{tag_bg}">{esc(tag)}</span>{extra}
+      <div class="c-acts">{exp}<a href="{esc(link)}" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
+    </div>
   </div>
-  <div class="cmeta"><span class="ctag" style="background:{tag_bg}">{esc(tag)}</span>{extra}</div>
   {body}
 </div>'''
 
@@ -793,6 +795,18 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
             f'<div class="lrow"><a href="{esc(a["link"])}" target="_blank" rel="noopener">{esc(a["title"])}</a></div>'
             for a in arts
         ) + '</div>'
+
+    def kokkai_html():
+        if not kokkai_speeches:
+            return '<p class="empty">過去14日間のひたちなか・茨城関連発言はありません</p>'
+        html = ""
+        for sp in kokkai_speeches:
+            dd = sp["date"].replace("-", "/") if sp["date"] else ""
+            extra = f'<span class="mpill">{esc(sp["house"])}</span><span class="mpill">{esc(sp["meeting"])}</span><span class="mpill">{esc(sp["speaker"])}</span>'
+            sm = f'<p class="excerpt">{esc(sp["excerpt"])}</p>'
+            html += card(f'{sp["meeting"]} — {sp["speaker"]} ({dd})',
+                         sp["link"], sm, "#0D9488", sp["keyword"], "#0D9488", extra=extra)
+        return html
 
     SOURCE_ICONS = {
         "茨城県 注目情報":"📌","茨城県 防災情報":"🚨",
@@ -819,10 +833,10 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
                 icon = SOURCE_ICONS.get(sname, "🔍")
                 top_cards = cards_map.get(sname, [])
                 rest = s["items"][len(top_cards):]
-                inner += f'<div class="srcblk"><div class="srclbl">{icon} {esc(sname)}</div>'
+                inner += f'<div class="src-blk"><div class="src-lbl">{icon} {esc(sname)}</div>'
                 for c in top_cards:
                     inner += card(c["title"], c["link"], c["summary_html"], grp_color, sname, grp_color,
-                                  extra='<span class="aibadge">✦ AI要約</span>')
+                                  extra='<span class="ai-tag">✦ AI要約</span>')
                 if rest:
                     inner += '<div class="lbox">'
                     for item in rest:
@@ -830,15 +844,15 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
                         inner += f'<div class="lrow"><a href="{esc(item["link"])}" target="_blank" rel="noopener">{esc(item["title"])}</a>{desc}</div>'
                     inner += '</div>'
                 inner += '</div>'
-            html += f'<details class="acc"{open_attr}><summary class="acc-s" style="--ac:{grp_color}"><span class="acc-l">{grp_label}</span><span class="acc-c">{total}件</span><span class="acc-v">›</span></summary><div class="acc-b">{inner}</div></details>'
+            html += f'<details class="acc"{open_attr}><summary class="acc-hd" style="--ac:{grp_color}"><span class="acc-lbl">{grp_label}</span><span class="acc-cnt">{total}件</span><span class="acc-chv">›</span></summary><div class="acc-bd">{inner}</div></details>'
         for s in src_list:
             if s["name"] not in shown and s["items"]:
                 icon = SOURCE_ICONS.get(s["name"], "🔍"); color = "#546E7A"
                 top_cards = cards_map.get(s["name"], [])
-                inner = f'<div class="srcblk"><div class="srclbl">{icon} {esc(s["name"])}</div>'
+                inner = f'<div class="src-blk"><div class="src-lbl">{icon} {esc(s["name"])}</div>'
                 for c in top_cards:
                     inner += card(c["title"], c["link"], c["summary_html"], color, s["name"], color,
-                                  extra='<span class="aibadge">✦ AI要約</span>')
+                                  extra='<span class="ai-tag">✦ AI要約</span>')
                 rest = s["items"][len(top_cards):]
                 if rest:
                     inner += '<div class="lbox">' + "".join(
@@ -846,7 +860,7 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
                         for i in rest
                     ) + '</div>'
                 inner += '</div>'
-                html += f'<details class="acc"><summary class="acc-s" style="--ac:{color}"><span class="acc-l">{icon} {esc(s["name"])}</span><span class="acc-c">{len(s["items"])}件</span><span class="acc-v">›</span></summary><div class="acc-b">{inner}</div></details>'
+                html += f'<details class="acc"><summary class="acc-hd" style="--ac:{color}"><span class="acc-lbl">{icon} {esc(s["name"])}</span><span class="acc-cnt">{len(s["items"])}件</span><span class="acc-chv">›</span></summary><div class="acc-bd">{inner}</div></details>'
         return html or '<p class="empty">本日の情報はありません</p>'
 
     PREF_GROUPS = [
@@ -864,18 +878,6 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
         ("sf", "🔗 省庁フィルタ",  "#8D6E63", ["関連情報（省庁フィルタ）"]),
     ]
 
-    def kokkai_html():
-        if not kokkai_speeches:
-            return '<p class="empty">過去14日間のひたちなか・茨城関連発言はありません</p>'
-        html = ""
-        for sp in kokkai_speeches:
-            dd = sp["date"].replace("-", "/") if sp["date"] else ""
-            extra = f'<span class="mpill">{esc(sp["house"])}</span><span class="mpill">{esc(sp["meeting"])}</span><span class="mpill">{esc(sp["speaker"])}</span>'
-            sm = f'<p class="excerpt">{esc(sp["excerpt"])}</p>'
-            html += card(f'{sp["meeting"]} — {sp["speaker"]} ({dd})',
-                         sp["link"], sm, "#00695C", sp["keyword"], "#00695C", extra=extra)
-        return html
-
     return f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -884,121 +886,127 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
 <title>ひたちなか政治情報ダッシュボード | {date_str}</title>
 <style>
 :root{{
-  --bg:#F3F4F6;--s:#fff;--s2:#F9FAFB;--b:#E5E7EB;--b2:#F0F2F5;
-  --t:#111827;--t2:#374151;--m:#6B7280;--f:#9CA3AF;
-  --sh1:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
-  --sh2:0 4px 14px rgba(0,0,0,.11),0 2px 4px rgba(0,0,0,.06);
-  --r:10px;
+  --bg:#F2F3F7;--s:#FFFFFF;--s2:#F8F9FC;
+  --b:#E6E9F0;--b2:#D1D8E6;
+  --t:#0B1528;--t2:#334155;--m:#64748B;--f:#94A3B8;
+  --sh0:0 1px 2px rgba(11,21,40,.04),0 0 0 1px rgba(11,21,40,.04);
+  --sh1:0 4px 16px rgba(11,21,40,.07),0 1px 3px rgba(11,21,40,.04);
+  --sh2:0 8px 28px rgba(11,21,40,.1),0 2px 6px rgba(11,21,40,.06);
+  --r:12px;--r2:8px;
 }}
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{font-family:-apple-system,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;background:var(--bg);color:var(--t);line-height:1.75;font-size:15px;-webkit-font-smoothing:antialiased}}
 
 /* Header */
-header{{background:linear-gradient(150deg,#0A1628 0%,#162B50 55%,#0A1628 100%);color:#fff;border-bottom:1px solid rgba(255,255,255,.06)}}
-.hi{{max-width:900px;margin:0 auto;padding:16px 18px 13px}}
-.hb{{display:flex;align-items:center;gap:10px;margin-bottom:7px}}
-.hl{{width:34px;height:34px;background:linear-gradient(135deg,#3B82F6,#1D4ED8);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(59,130,246,.3);flex-shrink:0}}
-.ht{{font-size:17px;font-weight:800;letter-spacing:-.3px;line-height:1.2}}
+header{{background:radial-gradient(ellipse at 20% 50%,#1E3A6E 0%,#0B1528 65%);color:#fff;border-bottom:1px solid rgba(255,255,255,.06)}}
+.hi{{max-width:920px;margin:0 auto;padding:18px 20px 14px}}
+.hb{{display:flex;align-items:center;gap:12px;margin-bottom:8px}}
+.hl{{width:36px;height:36px;background:linear-gradient(135deg,#3B82F6,#1D4ED8);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:0 2px 10px rgba(59,130,246,.35);flex-shrink:0}}
+.ht{{font-size:18px;font-weight:800;letter-spacing:-.4px;line-height:1.2}}
 .hm{{display:flex;align-items:center;gap:8px;flex-wrap:wrap}}
-.hbg{{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:20px;font-size:11px;padding:3px 10px;color:rgba(255,255,255,.8)}}
-.hbg.live{{background:rgba(52,211,153,.15);border-color:rgba(52,211,153,.3);color:#6EE7B7}}
+.hbg{{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;font-size:11px;padding:3px 11px;color:rgba(255,255,255,.75)}}
+.hbg.live{{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.28);color:#6EE7B7;padding-left:20px;position:relative}}
+.hbg.live::before{{content:'';position:absolute;left:9px;top:50%;transform:translateY(-50%);width:7px;height:7px;border-radius:50%;background:#34D399;animation:pulse 2s infinite}}
+@keyframes pulse{{0%{{box-shadow:0 0 0 0 rgba(52,211,153,.5)}}70%{{box-shadow:0 0 0 6px rgba(52,211,153,0)}}100%{{box-shadow:0 0 0 0 rgba(52,211,153,0)}}}}
 
 /* Tab bar */
-.tb{{background:var(--s);border-bottom:2px solid var(--b);position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.05)}}
-.tbi{{max-width:900px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none}}
+.tb{{background:var(--s);border-bottom:1px solid var(--b);position:sticky;top:0;z-index:100;box-shadow:0 1px 8px rgba(11,21,40,.06)}}
+.tbi{{max-width:920px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 4px}}
 .tbi::-webkit-scrollbar{{display:none}}
-.tbtn{{flex-shrink:0;padding:12px 14px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--m);border-bottom:3px solid transparent;margin-bottom:-2px;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:color .18s,background .15s,border-color .18s;letter-spacing:-.1px}}
-.tbtn:hover{{color:var(--t2);background:var(--b2)}}
-.tbtn.active{{color:var(--tc,#1565C0);border-bottom-color:var(--tc,#1565C0);background:rgba(0,0,0,.015)}}
-.tbadge{{font-size:10px;font-weight:800;padding:1px 6px;border-radius:10px;color:#fff;min-width:16px;text-align:center;line-height:1.5}}
+.tbtn{{flex-shrink:0;padding:12px 15px 11px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--m);border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:color .15s,border-color .15s;letter-spacing:-.1px}}
+.tbtn:hover{{color:var(--t2)}}
+.tbtn.active{{color:var(--tc,#1565C0);border-bottom-color:var(--tc,#1565C0)}}
+.tbadge{{font-size:10px;font-weight:800;padding:1px 6px;border-radius:10px;color:#fff;min-width:16px;text-align:center;line-height:1.6}}
 .tab-content{{display:none}}
 .tab-content.active{{display:block}}
 
 /* Container */
-.wrap{{max-width:900px;margin:0 auto;padding:16px 15px 36px}}
+.wrap{{max-width:920px;margin:0 auto;padding:20px 16px 40px}}
 
 /* Section head */
-.sh{{display:flex;align-items:center;gap:8px;margin:24px 0 11px;padding-bottom:9px;border-bottom:2px solid currentColor}}
-.sh h2{{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase}}
-.sc{{font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;background:currentColor;color:#fff;opacity:.9;line-height:1.6}}
+.sh{{display:flex;align-items:center;gap:8px;margin:28px 0 12px}}
+.sh h2{{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:currentColor}}
+.sc{{font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;background:currentColor;color:#fff;line-height:1.6}}
 
-/* Card */
-.card{{background:var(--s);border-radius:var(--r);margin-bottom:9px;box-shadow:var(--sh1);border-left:4px solid var(--ac,#ccc);overflow:hidden;transition:box-shadow .18s,transform .15s}}
-.card:hover{{box-shadow:var(--sh2);transform:translateY(-1px)}}
-.card-head{{padding:13px 14px 7px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}}
-.card-head.ex{{cursor:pointer}}
-.card-head.ex:hover{{background:var(--s2)}}
-.card-head.ex.expanded .chev{{transform:rotate(90deg);color:var(--ac)}}
-.ctitle{{font-weight:700;font-size:14px;line-height:1.55;flex:1;min-width:0}}
-.ctitle a{{color:var(--t);text-decoration:none;word-break:break-all}}
-.ctitle a:hover{{color:#1565C0;text-decoration:underline}}
-.cacts{{display:flex;align-items:center;gap:6px;flex-shrink:0;padding-top:1px}}
-.chev{{font-size:19px;color:var(--f);transition:transform .22s,color .22s;line-height:1;flex-shrink:0;user-select:none}}
-.bout{{font-size:11px;color:#1565C0;text-decoration:none;border:1px solid #BFDBFE;border-radius:6px;padding:3px 8px;background:#EFF6FF;white-space:nowrap;transition:background .15s;flex-shrink:0}}
-.bout:hover{{background:#DBEAFE}}
-.cmeta{{padding:0 14px 9px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}}
-.ctag{{font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;color:#fff;letter-spacing:.2px;flex-shrink:0}}
-.aibadge{{font-size:10px;font-weight:700;color:#7C3AED;background:#EDE9FE;padding:2px 7px;border-radius:10px;flex-shrink:0}}
-.mpill{{font-size:11px;color:var(--m);background:var(--b2);padding:2px 7px;border-radius:8px;border:1px solid var(--b)}}
-.card-body{{padding:4px 14px 14px;font-size:14px;line-height:1.78;border-top:1px solid var(--b)}}
-.card-body p{{margin:8px 0 4px;color:var(--t2)}}
-.card-body ul{{padding-left:1.3em;margin:6px 0}}
-.card-body li{{margin-bottom:5px;color:var(--t2)}}
-.excerpt{{color:var(--t2);font-style:italic;border-left:3px solid var(--b);padding-left:10px;margin:8px 0;font-size:13px}}
+/* Card — editorial border-top style */
+.card{{background:var(--s);border-radius:var(--r);margin-bottom:8px;box-shadow:var(--sh0);border:1px solid var(--b);border-top:3px solid var(--ac,#CBD5E1);overflow:hidden;transition:box-shadow .2s,transform .18s}}
+.card:hover{{box-shadow:var(--sh1);transform:translateY(-1px)}}
+.c-in{{padding:13px 15px 10px}}
+.c-in.ex{{cursor:pointer;transition:background .12s}}
+.c-in.ex:hover{{background:var(--s2)}}
+.c-in.ex.expanded .chv{{transform:rotate(90deg);color:var(--ac)}}
+.c-ttl{{font-weight:700;font-size:14px;line-height:1.55;margin-bottom:9px}}
+.c-ttl a{{color:var(--t);text-decoration:none;word-break:break-all}}
+.c-ttl a:hover{{color:#1565C0;text-decoration:underline}}
+.c-ft{{display:flex;align-items:center;gap:6px;flex-wrap:wrap}}
+.chip{{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;color:#fff;background:var(--cc,#94A3B8);letter-spacing:.1px;flex-shrink:0}}
+.ai-tag{{font-size:10px;font-weight:700;color:#6D28D9;background:#EDE9FE;padding:2px 7px;border-radius:8px;border:1px solid #DDD6FE;flex-shrink:0}}
+.mpill{{font-size:11px;color:var(--m);background:var(--b);padding:2px 8px;border-radius:8px;border:1px solid var(--b2);flex-shrink:0}}
+.c-acts{{display:flex;align-items:center;gap:6px;margin-left:auto;flex-shrink:0}}
+.exp-btn{{display:flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--m);padding:3px 8px;border-radius:6px;border:1px solid var(--b);background:var(--s2);white-space:nowrap;transition:background .12s}}
+.exp-btn:hover{{background:var(--b)}}
+.chv{{font-size:15px;color:var(--f);transition:transform .2s,color .2s;line-height:1;user-select:none}}
+.out-btn{{font-size:11px;color:var(--m);text-decoration:none;padding:3px 7px;border-radius:6px;border:1px solid var(--b);background:var(--s2);transition:background .12s;white-space:nowrap}}
+.out-btn:hover{{background:var(--b)}}
+.c-body{{padding:10px 15px 14px;border-top:1px solid var(--b);font-size:14px;line-height:1.8;background:var(--s2)}}
+.c-body p{{margin:6px 0 4px;color:var(--t2)}}
+.c-body ul{{padding-left:1.4em;margin:6px 0}}
+.c-body li{{margin-bottom:5px;color:var(--t2)}}
+.excerpt{{color:var(--t2);font-style:italic;border-left:3px solid var(--b2);padding-left:10px;margin:6px 0;font-size:13px}}
 
 /* List box */
-.lbox{{background:var(--s);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh1);margin-bottom:9px}}
-.lrow{{padding:10px 14px;border-bottom:1px solid var(--b);font-size:13px;display:flex;flex-direction:column;gap:3px}}
+.lbox{{background:var(--s);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh0);border:1px solid var(--b);margin-bottom:8px}}
+.lrow{{padding:10px 15px;border-bottom:1px solid var(--b);font-size:13px;display:flex;flex-direction:column;gap:3px}}
 .lrow:last-child{{border-bottom:none}}
 .lrow a{{color:var(--t);text-decoration:none;font-weight:600;line-height:1.5}}
 .lrow a:hover{{color:#1565C0}}
 .ldesc{{font-size:11px;color:var(--f)}}
 
 /* Digest */
-.digest{{background:linear-gradient(135deg,#F0FFF4,#ECFDF5);border:1px solid #86EFAC;border-radius:var(--r);padding:14px 16px;margin-bottom:10px;font-size:14px;line-height:1.78}}
+.digest{{background:linear-gradient(135deg,#F0FDF4,#ECFDF5);border:1px solid #86EFAC;border-radius:var(--r);padding:14px 16px;margin-bottom:10px;font-size:14px;line-height:1.78}}
 .digest p{{margin-bottom:6px;color:var(--t2)}}
-.digest ul{{padding-left:1.3em}}
+.digest ul{{padding-left:1.4em}}
 .digest li{{margin-bottom:4px;color:var(--t2)}}
 
 /* Accordion */
-.acc{{background:var(--s);border-radius:var(--r);margin-bottom:8px;box-shadow:var(--sh1);border-left:4px solid var(--ac,#999);overflow:hidden}}
-.acc-s{{list-style:none;padding:13px 15px;cursor:pointer;display:flex;align-items:center;gap:10px;user-select:none;font-weight:700;font-size:14px;transition:background .15s}}
-.acc-s::-webkit-details-marker{{display:none}}
-.acc-s:hover{{background:var(--s2)}}
-.acc-l{{flex:1;color:var(--ac,#333)}}
-.acc-c{{font-size:10px;font-weight:800;color:var(--ac);background:var(--b2);padding:2px 8px;border-radius:10px;border:1px solid var(--b)}}
-.acc-v{{color:var(--ac,#999);font-size:17px;transition:transform .22s;line-height:1;flex-shrink:0}}
-details[open] .acc-v{{transform:rotate(90deg)}}
-.acc-b{{padding:0 10px 10px}}
-.srcblk{{margin-top:8px}}
-.srclbl{{font-size:11px;font-weight:800;color:var(--m);letter-spacing:.8px;text-transform:uppercase;padding:5px 4px 4px}}
+.acc{{background:var(--s);border-radius:var(--r);margin-bottom:8px;box-shadow:var(--sh0);border:1px solid var(--b);border-left:3px solid var(--ac,#CBD5E1);overflow:hidden}}
+.acc-hd{{list-style:none;padding:13px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;user-select:none;font-weight:700;font-size:14px;transition:background .12s}}
+.acc-hd::-webkit-details-marker{{display:none}}
+.acc-hd:hover{{background:var(--s2)}}
+.acc-lbl{{flex:1;color:var(--ac,#334155)}}
+.acc-cnt{{font-size:10px;font-weight:800;color:var(--m);background:var(--b);padding:2px 9px;border-radius:10px;border:1px solid var(--b2)}}
+.acc-chv{{color:var(--f);font-size:16px;transition:transform .2s;line-height:1;flex-shrink:0}}
+details[open] .acc-chv{{transform:rotate(90deg)}}
+.acc-bd{{padding:4px 10px 10px}}
+.src-blk{{margin-top:8px}}
+.src-lbl{{font-size:10px;font-weight:800;color:var(--m);letter-spacing:.9px;text-transform:uppercase;padding:4px 5px 5px}}
 
 /* Search */
-.sbar{{padding:10px 0 4px}}
-.sinput{{width:100%;padding:9px 14px;border:1px solid var(--b);border-radius:8px;font-size:14px;background:var(--s);color:var(--t);transition:border-color .15s,box-shadow .15s}}
-.sinput:focus{{outline:none;border-color:#93C5FD;box-shadow:0 0 0 3px rgba(147,197,253,.2)}}
-.hint{{font-size:12px;color:var(--f);margin-bottom:12px;padding:0 2px}}
-.empty{{color:var(--m);font-size:13px;padding:20px 0;text-align:center}}
+.sbar{{padding:8px 0 6px}}
+.sinput{{width:100%;padding:9px 14px;border:1px solid var(--b);border-radius:var(--r2);font-size:14px;background:var(--s);color:var(--t);transition:border-color .15s,box-shadow .15s}}
+.sinput:focus{{outline:none;border-color:#93C5FD;box-shadow:0 0 0 3px rgba(147,197,253,.18)}}
+.hint{{font-size:12px;color:var(--f);margin-bottom:14px;padding:0 2px}}
+.empty{{color:var(--m);font-size:13px;padding:24px 0;text-align:center}}
 
 /* Footer */
-footer{{background:#0A1628;color:rgba(255,255,255,.45);font-size:12px;padding:22px 20px;text-align:center;line-height:2.2}}
+footer{{background:#0B1528;color:rgba(255,255,255,.4);font-size:12px;padding:24px 20px;text-align:center;line-height:2.4}}
 footer a{{color:rgba(255,255,255,.55);text-decoration:none}}
 footer a:hover{{color:#fff}}
 
 /* Mobile */
 @media(max-width:600px){{
   .ht{{font-size:15px}}
-  .card-head{{flex-direction:column;gap:5px}}
-  .cacts{{align-self:flex-start}}
+  .c-ft{{flex-wrap:wrap}}
+  .c-acts{{margin-left:0}}
   .tbtn{{padding:11px 11px;font-size:12px}}
   .tbadge{{font-size:9px;padding:1px 5px}}
 }}
 
 /* Print */
 @media print{{
-  .tb,.cacts,.sbar{{display:none!important}}
+  .tb,.c-acts,.sbar{{display:none!important}}
   .tab-content{{display:block!important}}
-  .card-body{{display:block!important}}
+  .c-body{{display:block!important}}
   .acc{{box-shadow:none;border:1px solid #ddd}}
   body{{font-size:12px}}
 }}
@@ -1013,7 +1021,7 @@ footer a:hover{{color:#fff}}
     <h1 class="ht">ひたちなか政治情報ダッシュボード</h1>
   </div>
   <div class="hm">
-    <span class="hbg live">● LIVE</span>
+    <span class="hbg live">LIVE</span>
     <span class="hbg">更新: {date_str} JST</span>
     <span class="hbg">AI: Gemini Flash 自動要約</span>
   </div>
@@ -1027,7 +1035,7 @@ footer a:hover{{color:#fff}}
   <button class="tbtn" data-tc="#1B5E20" onclick="sw('pref',this)">🌿 茨城県政{badge(cnt_pref,"#1B5E20")}</button>
   <button class="tbtn" data-tc="#4527A0" onclick="sw('national',this)">🏢 国政・省庁{badge(cnt_nat,"#4527A0")}</button>
   <button class="tbtn" data-tc="#5D4037" onclick="sw('subsidy',this)">💰 補助金{badge(cnt_sub,"#5D4037")}</button>
-  <button class="tbtn" data-tc="#00695C" onclick="sw('kokkai',this)">📜 国会{badge(cnt_kok,"#00695C")}</button>
+  <button class="tbtn" data-tc="#0D9488" onclick="sw('kokkai',this)">📜 国会{badge(cnt_kok,"#0D9488")}</button>
 </div>
 </div>
 
@@ -1106,9 +1114,9 @@ footer a:hover{{color:#fff}}
 <div id="kokkai" class="tab-content">
 <div class="wrap">
   <div class="sbar"><input class="sinput" type="search" placeholder="🔍 このタブ内を検索..." oninput="filt(this)" aria-label="検索"></div>
-  <div class="sh" style="color:#00695C">
+  <div class="sh" style="color:#0D9488">
     <h2>📜 国会会議録（過去14日間）</h2>
-    <span class="sc" style="background:#00695C">{cnt_kok}</span>
+    <span class="sc" style="background:#0D9488">{cnt_kok}</span>
   </div>
   <p class="hint">キーワード: ひたちなか / 那珂湊 / 茨城県 地方自治</p>
   {kokkai_html()}
@@ -1141,7 +1149,6 @@ function sw(id, btn) {{
 }}
 
 (function(){{
-  // 最初のアクティブボタンにカラー適用
   var first = document.querySelectorAll('.tbtn')[0];
   if(first && first.dataset.tc) first.style.setProperty('--tc', first.dataset.tc);
   var h = location.hash.replace('#','');
