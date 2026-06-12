@@ -779,7 +779,7 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
     def cards(lst, accent, tag, tag_bg, empty=""):
         if not lst:
             return f'<p class="empty">{esc(empty or f"本日の{tag}はありません")}</p>'
-        return "".join(card(c["title"], c["link"], c["summary_html"], accent, tag, tag_bg) for c in lst)
+        return '<div class="card-grid">' + "".join(card(c["title"], c["link"], c["summary_html"], accent, tag, tag_bg) for c in lst) + '</div>'
 
     def minor_html():
         if not minor_items: return '<p class="empty">本日の更新情報はありません</p>'
@@ -799,14 +799,14 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
     def kokkai_html():
         if not kokkai_speeches:
             return '<p class="empty">過去14日間のひたちなか・茨城関連発言はありません</p>'
-        html = ""
+        parts = []
         for sp in kokkai_speeches:
             dd = sp["date"].replace("-", "/") if sp["date"] else ""
             extra = f'<span class="mpill">{esc(sp["house"])}</span><span class="mpill">{esc(sp["meeting"])}</span><span class="mpill">{esc(sp["speaker"])}</span>'
             sm = f'<p class="excerpt">{esc(sp["excerpt"])}</p>'
-            html += card(f'{sp["meeting"]} — {sp["speaker"]} ({dd})',
-                         sp["link"], sm, "#0D9488", sp["keyword"], "#0D9488", extra=extra)
-        return html
+            parts.append(card(f'{sp["meeting"]} — {sp["speaker"]} ({dd})',
+                              sp["link"], sm, "#0D9488", sp["keyword"], "#0D9488", extra=extra))
+        return '<div class="card-grid">' + "".join(parts) + '</div>'
 
     SOURCE_ICONS = {
         "茨城県 注目情報":"📌","茨城県 防災情報":"🚨",
@@ -834,9 +834,12 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
                 top_cards = cards_map.get(sname, [])
                 rest = s["items"][len(top_cards):]
                 inner += f'<div class="src-blk"><div class="src-lbl">{icon} {esc(sname)}</div>'
-                for c in top_cards:
-                    inner += card(c["title"], c["link"], c["summary_html"], grp_color, sname, grp_color,
-                                  extra='<span class="ai-tag">✦ AI要約</span>')
+                if top_cards:
+                    inner += '<div class="card-grid">' + "".join(
+                        card(c["title"], c["link"], c["summary_html"], grp_color, sname, grp_color,
+                             extra='<span class="ai-tag">✦ AI要約</span>')
+                        for c in top_cards
+                    ) + '</div>'
                 if rest:
                     inner += '<div class="lbox">'
                     for item in rest:
@@ -850,9 +853,12 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
                 icon = SOURCE_ICONS.get(s["name"], "🔍"); color = "#546E7A"
                 top_cards = cards_map.get(s["name"], [])
                 inner = f'<div class="src-blk"><div class="src-lbl">{icon} {esc(s["name"])}</div>'
-                for c in top_cards:
-                    inner += card(c["title"], c["link"], c["summary_html"], color, s["name"], color,
-                                  extra='<span class="ai-tag">✦ AI要約</span>')
+                if top_cards:
+                    inner += '<div class="card-grid">' + "".join(
+                        card(c["title"], c["link"], c["summary_html"], color, s["name"], color,
+                             extra='<span class="ai-tag">✦ AI要約</span>')
+                        for c in top_cards
+                    ) + '</div>'
                 rest = s["items"][len(top_cards):]
                 if rest:
                     inner += '<div class="lbox">' + "".join(
@@ -886,128 +892,150 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
 <title>ひたちなか政治情報ダッシュボード | {date_str}</title>
 <style>
 :root{{
-  --bg:#F2F3F7;--s:#FFFFFF;--s2:#F8F9FC;
-  --b:#E6E9F0;--b2:#D1D8E6;
-  --t:#0B1528;--t2:#334155;--m:#64748B;--f:#94A3B8;
-  --sh0:0 1px 2px rgba(11,21,40,.04),0 0 0 1px rgba(11,21,40,.04);
-  --sh1:0 4px 16px rgba(11,21,40,.07),0 1px 3px rgba(11,21,40,.04);
-  --sh2:0 8px 28px rgba(11,21,40,.1),0 2px 6px rgba(11,21,40,.06);
-  --r:12px;--r2:8px;
+  --bg:#EAEAEC;--s:#FFFFFF;--s2:#F5F5F7;
+  --b:#E2E2E6;--b2:#C8C8CC;
+  --t:#111111;--t2:#444444;--m:#888888;--f:#AAAAAA;
+  --brand:#D32F2F;
+  --hbg:#1C1C1C;
+  --sh0:0 1px 3px rgba(0,0,0,.06),0 0 0 1px rgba(0,0,0,.04);
+  --sh1:0 4px 14px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.06);
+  --r:8px;--r2:5px;
 }}
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{font-family:-apple-system,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;background:var(--bg);color:var(--t);line-height:1.75;font-size:15px;-webkit-font-smoothing:antialiased}}
 
-/* Header */
-header{{background:radial-gradient(ellipse at 20% 50%,#1E3A6E 0%,#0B1528 65%);color:#fff;border-bottom:1px solid rgba(255,255,255,.06)}}
-.hi{{max-width:920px;margin:0 auto;padding:18px 20px 14px}}
-.hb{{display:flex;align-items:center;gap:12px;margin-bottom:8px}}
-.hl{{width:36px;height:36px;background:linear-gradient(135deg,#3B82F6,#1D4ED8);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:0 2px 10px rgba(59,130,246,.35);flex-shrink:0}}
-.ht{{font-size:18px;font-weight:800;letter-spacing:-.4px;line-height:1.2}}
-.hm{{display:flex;align-items:center;gap:8px;flex-wrap:wrap}}
-.hbg{{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;font-size:11px;padding:3px 11px;color:rgba(255,255,255,.75)}}
-.hbg.live{{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.28);color:#6EE7B7;padding-left:20px;position:relative}}
-.hbg.live::before{{content:'';position:absolute;left:9px;top:50%;transform:translateY(-50%);width:7px;height:7px;border-radius:50%;background:#34D399;animation:pulse 2s infinite}}
-@keyframes pulse{{0%{{box-shadow:0 0 0 0 rgba(52,211,153,.5)}}70%{{box-shadow:0 0 0 6px rgba(52,211,153,0)}}100%{{box-shadow:0 0 0 0 rgba(52,211,153,0)}}}}
+/* Header — SmartNews dark */
+header{{background:var(--hbg);color:#fff;border-bottom:none}}
+.hi{{max-width:1200px;margin:0 auto;padding:12px 16px 10px}}
+.hb{{display:flex;align-items:center;gap:10px;margin-bottom:5px}}
+.hl{{width:30px;height:30px;background:var(--brand);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}}
+.ht{{font-size:16px;font-weight:800;letter-spacing:-.3px;line-height:1.2}}
+.hm{{display:flex;align-items:center;gap:6px;flex-wrap:wrap}}
+.hbg{{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;font-size:11px;padding:2px 10px;color:rgba(255,255,255,.65)}}
+.hbg.live{{border-color:rgba(52,211,153,.3);color:#6EE7B7;padding-left:18px;position:relative}}
+.hbg.live::before{{content:'';position:absolute;left:8px;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:#34D399;animation:pulse 2s infinite}}
+@keyframes pulse{{0%{{box-shadow:0 0 0 0 rgba(52,211,153,.5)}}70%{{box-shadow:0 0 0 5px rgba(52,211,153,0)}}100%{{box-shadow:0 0 0 0 rgba(52,211,153,0)}}}}
 
-/* Tab bar */
-.tb{{background:var(--s);border-bottom:1px solid var(--b);position:sticky;top:0;z-index:100;box-shadow:0 1px 8px rgba(11,21,40,.06)}}
-.tbi{{max-width:920px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 4px}}
+/* Tab bar — SmartNews dark */
+.tb{{background:var(--hbg);border-bottom:none;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3)}}
+.tbi{{max-width:1200px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}}
 .tbi::-webkit-scrollbar{{display:none}}
-.tbtn{{flex-shrink:0;padding:12px 15px 11px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--m);border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:color .15s,border-color .15s;letter-spacing:-.1px}}
-.tbtn:hover{{color:var(--t2)}}
-.tbtn.active{{color:var(--tc,#1565C0);border-bottom-color:var(--tc,#1565C0)}}
-.tbadge{{font-size:10px;font-weight:800;padding:1px 6px;border-radius:10px;color:#fff;min-width:16px;text-align:center;line-height:1.6}}
+.tbtn{{flex-shrink:0;padding:12px 16px 10px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:rgba(255,255,255,.5);border-bottom:3px solid transparent;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:color .15s,border-color .15s}}
+.tbtn:hover{{color:rgba(255,255,255,.85)}}
+.tbtn.active{{color:#fff;border-bottom-color:var(--brand)}}
+.tbadge{{font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;background:var(--brand);color:#fff;min-width:14px;text-align:center;line-height:1.7}}
 .tab-content{{display:none}}
 .tab-content.active{{display:block}}
 
 /* Container */
-.wrap{{max-width:920px;margin:0 auto;padding:20px 16px 40px}}
+.wrap{{max-width:1200px;margin:0 auto;padding:0 0 48px;background:var(--s)}}
 
-/* Section head */
-.sh{{display:flex;align-items:center;gap:8px;margin:28px 0 12px}}
-.sh h2{{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:currentColor}}
-.sc{{font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;background:currentColor;color:#fff;line-height:1.6}}
+/* Section head — left border style */
+.sh{{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg);border-left:4px solid currentColor;margin:8px 0 0}}
+.sh h2{{font-size:12px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:currentColor}}
+.sc{{font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:currentColor;color:#fff;line-height:1.6}}
 
-/* Card — editorial border-top style */
-.card{{background:var(--s);border-radius:var(--r);margin-bottom:8px;box-shadow:var(--sh0);border:1px solid var(--b);border-top:3px solid var(--ac,#CBD5E1);overflow:hidden;transition:box-shadow .2s,transform .18s}}
-.card:hover{{box-shadow:var(--sh1);transform:translateY(-1px)}}
-.c-in{{padding:13px 15px 10px}}
-.c-in.ex{{cursor:pointer;transition:background .12s}}
-.c-in.ex:hover{{background:var(--s2)}}
-.c-in.ex.expanded .chv{{transform:rotate(90deg);color:var(--ac)}}
-.c-ttl{{font-weight:700;font-size:14px;line-height:1.55;margin-bottom:9px}}
+/* Card — feed style */
+.card{{background:var(--s);border-radius:0;margin-bottom:0;box-shadow:none;border:none;border-bottom:1px solid var(--b);overflow:hidden;transition:background .1s}}
+.card:last-child{{border-bottom:none}}
+.card:hover{{background:var(--s2)}}
+.c-in{{padding:12px 14px 10px}}
+.c-in.ex{{cursor:pointer}}
+.c-in.ex:active{{background:var(--s2)}}
+.c-in.ex.expanded .chv{{transform:rotate(90deg);color:var(--brand)}}
+.c-ttl{{font-weight:700;font-size:14.5px;line-height:1.55;margin-bottom:8px}}
 .c-ttl a{{color:var(--t);text-decoration:none;word-break:break-all}}
-.c-ttl a:hover{{color:#1565C0;text-decoration:underline}}
-.c-ft{{display:flex;align-items:center;gap:6px;flex-wrap:wrap}}
-.chip{{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;color:#fff;background:var(--cc,#94A3B8);letter-spacing:.1px;flex-shrink:0}}
-.ai-tag{{font-size:10px;font-weight:700;color:#6D28D9;background:#EDE9FE;padding:2px 7px;border-radius:8px;border:1px solid #DDD6FE;flex-shrink:0}}
-.mpill{{font-size:11px;color:var(--m);background:var(--b);padding:2px 8px;border-radius:8px;border:1px solid var(--b2);flex-shrink:0}}
-.c-acts{{display:flex;align-items:center;gap:6px;margin-left:auto;flex-shrink:0}}
-.exp-btn{{display:flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--m);padding:3px 8px;border-radius:6px;border:1px solid var(--b);background:var(--s2);white-space:nowrap;transition:background .12s}}
+.c-ttl a:hover{{color:var(--brand)}}
+.c-ft{{display:flex;align-items:center;gap:5px;flex-wrap:wrap}}
+.chip{{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;color:#fff;background:var(--cc,#888);letter-spacing:.1px;flex-shrink:0}}
+.ai-tag{{font-size:10px;font-weight:700;color:#7C3AED;background:#F3F0FF;padding:2px 6px;border-radius:3px;flex-shrink:0}}
+.mpill{{font-size:11px;color:var(--m);background:var(--b);padding:2px 7px;border-radius:3px;flex-shrink:0}}
+.c-acts{{display:flex;align-items:center;gap:5px;margin-left:auto;flex-shrink:0}}
+.exp-btn{{display:flex;align-items:center;gap:2px;font-size:10px;font-weight:700;color:var(--m);padding:2px 7px;border-radius:3px;border:1px solid var(--b);background:none;white-space:nowrap;transition:background .1s}}
 .exp-btn:hover{{background:var(--b)}}
-.chv{{font-size:15px;color:var(--f);transition:transform .2s,color .2s;line-height:1;user-select:none}}
-.out-btn{{font-size:11px;color:var(--m);text-decoration:none;padding:3px 7px;border-radius:6px;border:1px solid var(--b);background:var(--s2);transition:background .12s;white-space:nowrap}}
+.chv{{font-size:14px;color:var(--f);transition:transform .2s,color .2s;line-height:1;user-select:none}}
+.out-btn{{font-size:11px;color:var(--m);text-decoration:none;padding:2px 7px;border-radius:3px;border:1px solid var(--b);background:none;transition:background .1s;white-space:nowrap}}
 .out-btn:hover{{background:var(--b)}}
-.c-body{{padding:10px 15px 14px;border-top:1px solid var(--b);font-size:14px;line-height:1.8;background:var(--s2)}}
-.c-body p{{margin:6px 0 4px;color:var(--t2)}}
-.c-body ul{{padding-left:1.4em;margin:6px 0}}
-.c-body li{{margin-bottom:5px;color:var(--t2)}}
-.excerpt{{color:var(--t2);font-style:italic;border-left:3px solid var(--b2);padding-left:10px;margin:6px 0;font-size:13px}}
+.c-body{{padding:10px 14px 14px;border-top:1px solid var(--b);font-size:13.5px;line-height:1.8;background:var(--s2);animation:fadein .2s ease}}
+.c-body p{{margin:5px 0 4px;color:var(--t2)}}
+.c-body ul{{padding-left:1.4em;margin:5px 0}}
+.c-body li{{margin-bottom:4px;color:var(--t2)}}
+.excerpt{{color:var(--t2);font-style:italic;border-left:3px solid var(--b2);padding-left:10px;margin:5px 0;font-size:13px}}
+@keyframes fadein{{from{{opacity:0;transform:translateY(-4px)}}to{{opacity:1;transform:translateY(0)}}}}
+
+/* Card grid — PC 2-column */
+.card-grid{{}}
+@media(min-width:768px){{
+  .wrap{{padding:0 16px 48px}}
+  .sh{{margin:12px 0 0}}
+  .card-grid{{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:8px 0}}
+  .card-grid .card{{border-radius:var(--r);border:1px solid var(--b);border-top:3px solid var(--ac,#CBD5E1);box-shadow:var(--sh0);margin-bottom:0}}
+  .card-grid .card:last-child{{border-bottom:1px solid var(--b)}}
+  .card-grid .card:hover{{box-shadow:var(--sh1);transform:translateY(-1px);background:var(--s)}}
+}}
+@media(min-width:1024px){{
+  .card-grid{{gap:12px}}
+}}
 
 /* List box */
-.lbox{{background:var(--s);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh0);border:1px solid var(--b);margin-bottom:8px}}
-.lrow{{padding:10px 15px;border-bottom:1px solid var(--b);font-size:13px;display:flex;flex-direction:column;gap:3px}}
+.lbox{{background:var(--s);overflow:hidden}}
+.lrow{{padding:10px 14px;border-bottom:1px solid var(--b);font-size:13px;display:flex;flex-direction:column;gap:3px;transition:background .1s}}
 .lrow:last-child{{border-bottom:none}}
+.lrow:hover{{background:var(--s2)}}
 .lrow a{{color:var(--t);text-decoration:none;font-weight:600;line-height:1.5}}
-.lrow a:hover{{color:#1565C0}}
+.lrow a:hover{{color:var(--brand)}}
 .ldesc{{font-size:11px;color:var(--f)}}
 
 /* Digest */
-.digest{{background:linear-gradient(135deg,#F0FDF4,#ECFDF5);border:1px solid #86EFAC;border-radius:var(--r);padding:14px 16px;margin-bottom:10px;font-size:14px;line-height:1.78}}
+.digest{{background:linear-gradient(135deg,#F0FDF4,#ECFDF5);border-left:4px solid #22C55E;padding:12px 16px;font-size:13.5px;line-height:1.78}}
 .digest p{{margin-bottom:6px;color:var(--t2)}}
 .digest ul{{padding-left:1.4em}}
 .digest li{{margin-bottom:4px;color:var(--t2)}}
 
 /* Accordion */
-.acc{{background:var(--s);border-radius:var(--r);margin-bottom:8px;box-shadow:var(--sh0);border:1px solid var(--b);border-left:3px solid var(--ac,#CBD5E1);overflow:hidden}}
-.acc-hd{{list-style:none;padding:13px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;user-select:none;font-weight:700;font-size:14px;transition:background .12s}}
+.acc{{background:var(--s);border-radius:0;margin-bottom:0;border:none;border-bottom:1px solid var(--b);overflow:hidden}}
+.acc:last-child{{border-bottom:none}}
+.acc-hd{{list-style:none;padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;user-select:none;font-weight:700;font-size:14px;transition:background .12s;border-left:4px solid var(--ac,var(--brand))}}
 .acc-hd::-webkit-details-marker{{display:none}}
 .acc-hd:hover{{background:var(--s2)}}
-.acc-lbl{{flex:1;color:var(--ac,#334155)}}
-.acc-cnt{{font-size:10px;font-weight:800;color:var(--m);background:var(--b);padding:2px 9px;border-radius:10px;border:1px solid var(--b2)}}
-.acc-chv{{color:var(--f);font-size:16px;transition:transform .2s;line-height:1;flex-shrink:0}}
+.acc-lbl{{flex:1;color:var(--t)}}
+.acc-cnt{{font-size:10px;font-weight:800;color:var(--m);background:var(--b);padding:2px 8px;border-radius:4px}}
+.acc-chv{{color:var(--f);font-size:15px;transition:transform .2s;line-height:1;flex-shrink:0}}
 details[open] .acc-chv{{transform:rotate(90deg)}}
-.acc-bd{{padding:4px 10px 10px}}
-.src-blk{{margin-top:8px}}
-.src-lbl{{font-size:10px;font-weight:800;color:var(--m);letter-spacing:.9px;text-transform:uppercase;padding:4px 5px 5px}}
+details[open] .acc-bd{{animation:fadein .2s ease}}
+.acc-bd{{padding:0}}
+.src-blk{{border-top:1px solid var(--b)}}
+.src-lbl{{font-size:10px;font-weight:800;color:var(--m);letter-spacing:.8px;text-transform:uppercase;padding:6px 14px 4px;background:var(--bg)}}
+@media(min-width:768px){{
+  .acc{{border-radius:var(--r);border:1px solid var(--b);margin-bottom:8px}}
+  .acc:last-child{{border-bottom:1px solid var(--b)}}
+}}
 
 /* Search */
-.sbar{{padding:8px 0 6px}}
-.sinput{{width:100%;padding:9px 14px;border:1px solid var(--b);border-radius:var(--r2);font-size:14px;background:var(--s);color:var(--t);transition:border-color .15s,box-shadow .15s}}
-.sinput:focus{{outline:none;border-color:#93C5FD;box-shadow:0 0 0 3px rgba(147,197,253,.18)}}
-.hint{{font-size:12px;color:var(--f);margin-bottom:14px;padding:0 2px}}
+.sbar{{padding:8px 14px 6px;background:var(--s);border-bottom:1px solid var(--b)}}
+.sinput{{width:100%;padding:8px 12px;border:1px solid var(--b);border-radius:var(--r2);font-size:13px;background:var(--s2);color:var(--t);transition:border-color .15s,box-shadow .15s}}
+.sinput:focus{{outline:none;border-color:var(--brand);box-shadow:0 0 0 2px rgba(211,47,47,.12)}}
+.hint{{font-size:11.5px;color:var(--f);padding:5px 14px;background:var(--s);border-bottom:1px solid var(--b)}}
 .empty{{color:var(--m);font-size:13px;padding:24px 0;text-align:center}}
 
 /* Footer */
-footer{{background:#0B1528;color:rgba(255,255,255,.4);font-size:12px;padding:24px 20px;text-align:center;line-height:2.4}}
-footer a{{color:rgba(255,255,255,.55);text-decoration:none}}
+footer{{background:var(--hbg);color:rgba(255,255,255,.35);font-size:11px;padding:20px 18px;text-align:center;line-height:2.4}}
+footer a{{color:rgba(255,255,255,.5);text-decoration:none}}
 footer a:hover{{color:#fff}}
 
 /* Mobile */
 @media(max-width:600px){{
-  .ht{{font-size:15px}}
+  .ht{{font-size:14px}}
   .c-ft{{flex-wrap:wrap}}
   .c-acts{{margin-left:0}}
-  .tbtn{{padding:11px 11px;font-size:12px}}
-  .tbadge{{font-size:9px;padding:1px 5px}}
+  .tbtn{{padding:11px 12px;font-size:12px}}
 }}
 
 /* Print */
 @media print{{
-  .tb,.c-acts,.sbar{{display:none!important}}
+  .tb,.c-acts,.sbar,.hint{{display:none!important}}
   .tab-content{{display:block!important}}
   .c-body{{display:block!important}}
-  .acc{{box-shadow:none;border:1px solid #ddd}}
   body{{font-size:12px}}
 }}
 </style>
@@ -1141,29 +1169,22 @@ var TABS = ['hitachinaka','ibaraki','pref','national','subsidy','kokkai'];
 
 function sw(id, btn) {{
   document.querySelectorAll('.tab-content').forEach(function(c){{c.classList.remove('active')}});
-  document.querySelectorAll('.tbtn').forEach(function(b){{b.classList.remove('active');b.style.removeProperty('--tc')}});
+  document.querySelectorAll('.tbtn').forEach(function(b){{b.classList.remove('active')}});
   document.getElementById(id).classList.add('active');
   btn.classList.add('active');
-  if(btn.dataset.tc) btn.style.setProperty('--tc', btn.dataset.tc);
   location.hash = id;
 }}
 
 (function(){{
-  var first = document.querySelectorAll('.tbtn')[0];
-  if(first && first.dataset.tc) first.style.setProperty('--tc', first.dataset.tc);
   var h = location.hash.replace('#','');
   if(!h) return;
   var el = document.getElementById(h);
   if(!el) return;
   document.querySelectorAll('.tab-content').forEach(function(c){{c.classList.remove('active')}});
-  document.querySelectorAll('.tbtn').forEach(function(b){{b.classList.remove('active');b.style.removeProperty('--tc')}});
+  document.querySelectorAll('.tbtn').forEach(function(b){{b.classList.remove('active')}});
   el.classList.add('active');
   var idx = TABS.indexOf(h);
-  if(idx >= 0) {{
-    var btn = document.querySelectorAll('.tbtn')[idx];
-    btn.classList.add('active');
-    if(btn.dataset.tc) btn.style.setProperty('--tc', btn.dataset.tc);
-  }}
+  if(idx >= 0) document.querySelectorAll('.tbtn')[idx].classList.add('active');
 }})();
 
 function tgl(head) {{
