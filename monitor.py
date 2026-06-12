@@ -736,75 +736,129 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
     jst = generated_at + timedelta(hours=9)
     date_str = jst.strftime("%Y年%m月%d日 %H:%M")
 
-    def cards_html(cards, color, label):
-        if not cards: return f'<p class="empty">本日の{label}はありません</p>'
-        html = ""
-        for c in cards:
-            html += f"""
-<div class="card" style="border-left:4px solid {color}">
-  <div class="card-title"><a href="{esc(c['link'])}" target="_blank">{esc(c['title'])}</a></div>
-  <div class="card-summary">{c['summary_html']}</div>
-  <div class="card-meta">
-    <span class="tag" style="background:{color}">{label}</span>
-    <a href="{esc(c['link'])}" target="_blank" class="src-link">公式ページを見る →</a>
+    # タブ件数カウント
+    cnt_hita = len(gikai_cards) + len(important_cards) + len(minor_items)
+    cnt_ib   = len(ibaraki_local_cards or []) + len(ibaraki_all or [])
+    cnt_nat  = sum(len(s["items"]) for s in (national_sources or []))
+    cnt_kok  = len(kokkai_speeches or [])
+
+    def badge(n):
+        if n == 0: return ''
+        return f'<span class="tab-badge">{n}</span>'
+
+    # ---- カード（折りたたみ式）----
+    _card_idx = [0]
+    def collapsible_card(title, link, summary_html, accent, tag_label, tag_bg, extra_meta=""):
+        i = _card_idx[0]; _card_idx[0] += 1
+        cid = f"c{i}"
+        has_summary = bool(summary_html and summary_html.strip())
+        toggle = f'<button class="card-toggle" onclick="toggleCard(\'{cid}\')" aria-expanded="false">詳細 <span class="chevron">▼</span></button>' if has_summary else ''
+        return f"""
+<div class="card" style="--accent:{accent}">
+  <div class="card-head">
+    <div class="card-title"><a href="{esc(link)}" target="_blank" rel="noopener">{esc(title)}</a></div>
+    <div class="card-actions">{toggle}<a href="{esc(link)}" target="_blank" rel="noopener" class="btn-src">開く ↗</a></div>
   </div>
+  <div class="card-meta-row">
+    <span class="tag" style="background:{tag_bg}">{esc(tag_label)}</span>{extra_meta}
+  </div>
+  {"" if not has_summary else f'<div class="card-body" id="{cid}" hidden>{summary_html}</div>'}
 </div>"""
-        return html
+
+    def cards_block(cards, accent, tag_label, tag_bg, empty_msg=""):
+        if not cards:
+            return f'<p class="empty">{esc(empty_msg or f"本日の{tag_label}はありません")}</p>'
+        return "".join(
+            collapsible_card(c["title"], c["link"], c["summary_html"], accent, tag_label, tag_bg)
+            for c in cards
+        )
 
     def minor_html():
         if not minor_items: return '<p class="empty">本日の更新情報はありません</p>'
-        rows = ""
-        for i in minor_items:
-            rows += f'<tr><td><a href="{esc(i["link"])}" target="_blank">{esc(i["title"])}</a></td></tr>\n'
-        return f"<table><tbody>{rows}</tbody></table>"
+        rows = "".join(
+            f'<div class="list-row"><a href="{esc(i["link"])}" target="_blank" rel="noopener">{esc(i["title"])}</a></div>\n'
+            for i in minor_items
+        )
+        return f'<div class="list-table">{rows}</div>'
 
     def ibaraki_digest_html(digest, all_articles):
         if not all_articles: return '<p class="empty">本日の茨城新聞ニュースはありません</p>'
         digest_block = ""
         if digest:
-            digest_block = f'<div class="card" style="border-left:4px solid #33691E"><div class="card-summary">{summary_to_html(digest)}</div></div>'
+            digest_block = f'<div class="digest-block">{summary_to_html(digest)}</div>'
         rows = "".join(
-            f'<tr><td><a href="{esc(a["link"])}" target="_blank">{esc(a["title"])}</a></td></tr>\n'
+            f'<div class="list-row"><a href="{esc(a["link"])}" target="_blank" rel="noopener">{esc(a["title"])}</a></div>\n'
             for a in all_articles
         )
-        return digest_block + f'<table><tbody>{rows}</tbody></table>'
+        return digest_block + f'<div class="list-table">{rows}</div>'
+
+    # ---- 国政アコーディオン（ソースグループ別）----
+    SOURCE_GROUP = [
+        ("ibaraki",  "🍀 茨城県",       "#1B5E20", ["茨城県 注目情報","茨城県 防災情報"]),
+        ("kantei",   "🏛️ 官邸・総務",   "#0D47A1", ["首相官邸","総務省","内閣府 地方分権改革"]),
+        ("ministry", "🏢 省庁",          "#4A148C", ["農林水産省","国土交通省","厚生労働省","環境省"]),
+        ("media",    "📺 NHK政治",       "#B71C1C", ["NHK 政治"]),
+    ]
+    SOURCE_ICONS = {
+        "茨城県 注目情報":"📌","茨城県 防災情報":"🚨",
+        "首相官邸":"🏛️","総務省":"📋","内閣府 地方分権改革":"🏢",
+        "農林水産省":"🌾","NHK 政治":"📺",
+        "国土交通省":"🏗️","厚生労働省":"🏥","環境省":"🌿",
+        "Googleアラート":"🔔",
+    }
 
     def national_section_html():
         if not national_sources:
             return '<p class="empty">本日の国政・県政情報はありません</p>'
-        source_icons = {
-            "茨城県 注目情報": "📌", "茨城県 防災情報": "🚨",
-            "首相官邸": "🏛️", "総務省": "📋", "内閣府 地方分権改革": "🏢",
-            "農林水産省": "🌾", "NHK 政治": "📺",
-            "国土交通省": "🏗️", "厚生労働省": "🏥", "環境省": "🌿",
-        }
+        src_map = {s["name"]: s for s in national_sources}
+        cards_map = national_cards_by_source or {}
         html = ""
+        shown = set()
+        for grp_id, grp_label, grp_color, grp_names in SOURCE_GROUP:
+            grp_items_total = sum(len(src_map[n]["items"]) for n in grp_names if n in src_map and src_map[n]["items"])
+            if grp_items_total == 0: continue
+            shown.update(grp_names)
+            is_first = (grp_id == "ibaraki")
+            open_attr = " open" if is_first else ""
+            inner = ""
+            for sname in grp_names:
+                s = src_map.get(sname)
+                if not s or not s["items"]: continue
+                icon = SOURCE_ICONS.get(sname, "🔍")
+                top_cards = cards_map.get(sname, [])
+                rest = s["items"][len(top_cards):]
+                inner += f'<div class="src-section"><div class="src-label">{icon} {esc(sname)}</div>'
+                for card in top_cards:
+                    inner += collapsible_card(
+                        card["title"], card["link"], card["summary_html"],
+                        grp_color, sname, grp_color,
+                        extra_meta='<span class="ai-badge">✦ AI要約</span>'
+                    )
+                if rest:
+                    inner += '<div class="list-table">'
+                    for item in rest:
+                        desc = f'<span class="list-desc">{esc(item["description"][:60])}…</span>' if item.get("description") else ""
+                        inner += f'<div class="list-row"><a href="{esc(item["link"])}" target="_blank" rel="noopener">{esc(item["title"])}</a>{desc}</div>\n'
+                    inner += '</div>'
+                inner += '</div>'
+            html += f'<details class="acc"{open_attr}><summary class="acc-head" style="--ac:{grp_color}"><span class="acc-label">{grp_label}</span><span class="acc-count">{grp_items_total}件</span><span class="acc-chev">›</span></summary><div class="acc-body">{inner}</div></details>'
+
+        # グループ外のソース（Googleアラートなど）
         for s in national_sources:
-            if not s["items"]: continue
-            icon = source_icons.get(s["name"], "🔍")
-            html += f'<h3 class="src-heading">{icon} {esc(s["name"])}</h3>'
-            top_cards = (national_cards_by_source or {}).get(s["name"], [])
-            # 上位3件はAI要約カード
-            for card in top_cards:
-                html += f"""
-<div class="card" style="border-left:4px solid #4527A0">
-  <div class="card-title"><a href="{esc(card['link'])}" target="_blank">{esc(card['title'])}</a></div>
-  <div class="card-summary">{card['summary_html']}</div>
-  <div class="card-meta">
-    <span class="tag" style="background:#4527A0">{esc(s["name"])}</span>
-    <a href="{esc(card['link'])}" target="_blank" class="src-link">公式ページを見る →</a>
-  </div>
-</div>"""
-            # 4件目以降はリスト表示
-            rest = s["items"][len(top_cards):]
-            if rest:
-                rows = "".join(
-                    f'<tr><td><a href="{esc(i["link"])}" target="_blank">{esc(i["title"])}</a>'
-                    + (f'<div class="item-desc">{esc(i["description"])}</div>' if i.get("description") else "")
-                    + '</td></tr>\n'
-                    for i in rest
-                )
-                html += f'<table><tbody>{rows}</tbody></table>'
+            if s["name"] not in shown and s["items"]:
+                icon = SOURCE_ICONS.get(s["name"], "🔍")
+                top_cards = cards_map.get(s["name"], [])
+                inner = f'<div class="src-section"><div class="src-label">{icon} {esc(s["name"])}</div>'
+                for card in top_cards:
+                    inner += collapsible_card(card["title"], card["link"], card["summary_html"], "#37474F", s["name"], "#37474F", extra_meta='<span class="ai-badge">✦ AI要約</span>')
+                rest = s["items"][len(top_cards):]
+                if rest:
+                    inner += '<div class="list-table">' + "".join(
+                        f'<div class="list-row"><a href="{esc(i["link"])}" target="_blank" rel="noopener">{esc(i["title"])}</a></div>'
+                        for i in rest
+                    ) + '</div>'
+                inner += '</div>'
+                html += f'<details class="acc"><summary class="acc-head" style="--ac:#37474F"><span class="acc-label">{icon} {esc(s["name"])}</span><span class="acc-count">{len(s["items"])}件</span><span class="acc-chev">›</span></summary><div class="acc-body">{inner}</div></details>'
         return html or '<p class="empty">本日の国政・県政情報はありません</p>'
 
     def kokkai_section_html():
@@ -813,20 +867,13 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
         html = ""
         for sp in kokkai_speeches:
             date_disp = sp["date"].replace("-", "/") if sp["date"] else ""
-            meta = f'{date_disp}　{esc(sp["house"])}　{esc(sp["meeting"])}　{esc(sp["speaker"])}'
-            keyword_tag = f'<span class="tag" style="background:#00695C">🔍 {esc(sp["keyword"])}</span>'
-            html += f"""
-<div class="card" style="border-left:4px solid #00695C">
-  <div class="card-title"><a href="{esc(sp['link'])}" target="_blank">{esc(sp['meeting'])} — {esc(sp['speaker'])}</a></div>
-  <div class="card-summary">
-    <p style="color:#555;font-size:13px">{meta}</p>
-    <p>{esc(sp['excerpt'])}</p>
-  </div>
-  <div class="card-meta">
-    {keyword_tag}
-    <a href="{esc(sp['link'])}" target="_blank" class="src-link">会議録を見る →</a>
-  </div>
-</div>"""
+            meta_extra = f'<span class="meta-pill">{esc(sp["house"])}</span><span class="meta-pill">{esc(sp["meeting"])}</span><span class="meta-pill">{esc(sp["speaker"])}</span>'
+            summary = f'<p class="excerpt">{esc(sp["excerpt"])}</p>'
+            html += collapsible_card(
+                f'{sp["meeting"]} — {sp["speaker"]} ({date_disp})',
+                sp["link"], summary, "#00695C", sp["keyword"], "#00695C",
+                extra_meta=meta_extra
+            )
         return html
 
     return f"""<!DOCTYPE html>
@@ -834,100 +881,279 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ひたちなか市・茨城新聞・国政県政 最新情報 | {date_str}</title>
+<title>ひたちなか政治情報ダッシュボード | {date_str}</title>
 <style>
-:root{{--blue:#1565C0;--red:#C62828;--amber:#E65100;--gray:#546E7A;--green:#1B5E20;--purple:#4527A0;--bg:#F8F9FA}}
+:root{{
+  --navy:#0D1B2A;--blue:#1558B8;--red:#B71C1C;--amber:#D84315;
+  --green:#1B5E20;--teal:#00695C;--purple:#311B92;
+  --bg:#EEF0F4;--surface:#fff;--border:#DDE1E9;
+  --text:#1A1A2E;--muted:#6B7280;--radius:10px;
+}}
 *{{box-sizing:border-box;margin:0;padding:0}}
-body{{font-family:"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;background:var(--bg);color:#212121;line-height:1.7;font-size:15px}}
-header{{background:var(--blue);color:#fff;padding:16px 20px}}
-header h1{{font-size:18px;font-weight:700}}
-header .updated{{font-size:12px;opacity:.85;margin-top:4px}}
-header a{{color:#fff}}
-.tab-bar{{display:flex;background:#fff;border-bottom:2px solid #e0e0e0;position:sticky;top:0;z-index:10}}
-.tab-btn{{flex:1;padding:12px 4px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;color:#888;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}}
+body{{font-family:-apple-system,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;background:var(--bg);color:var(--text);line-height:1.75;font-size:15px;-webkit-font-smoothing:antialiased}}
+
+/* ── Header ── */
+header{{background:linear-gradient(135deg,#0D1B2A 0%,#1A3A5C 100%);color:#fff;padding:0}}
+.header-inner{{max-width:900px;margin:0 auto;padding:18px 20px 14px}}
+.header-brand{{display:flex;align-items:center;gap:10px;margin-bottom:6px}}
+.header-brand .logo{{width:32px;height:32px;background:linear-gradient(135deg,#2196F3,#0D47A1);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}}
+.header-brand h1{{font-size:17px;font-weight:800;letter-spacing:-.3px}}
+.header-meta{{display:flex;align-items:center;gap:10px;flex-wrap:wrap}}
+.header-badge{{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:20px;font-size:11px;padding:3px 10px;color:rgba(255,255,255,.85)}}
+.header-badge.live{{background:rgba(34,197,94,.2);border-color:rgba(34,197,94,.4);color:#86efac}}
+
+/* ── Tab Bar ── */
+.tab-bar{{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;box-shadow:0 1px 8px rgba(0,0,0,.06)}}
+.tab-bar-inner{{max-width:900px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none}}
+.tab-bar-inner::-webkit-scrollbar{{display:none}}
+.tab-btn{{flex-shrink:0;padding:13px 16px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:color .2s,border-color .2s}}
 .tab-btn.active{{color:var(--blue);border-bottom-color:var(--blue)}}
 .tab-btn:nth-child(2).active{{color:var(--green);border-bottom-color:var(--green)}}
 .tab-btn:nth-child(3).active{{color:var(--purple);border-bottom-color:var(--purple)}}
+.tab-btn:nth-child(4).active{{color:var(--teal);border-bottom-color:var(--teal)}}
+.tab-badge{{background:var(--blue);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:800;min-width:18px;text-align:center}}
+.tab-btn:nth-child(2) .tab-badge{{background:var(--green)}}
+.tab-btn:nth-child(3) .tab-badge{{background:var(--purple)}}
+.tab-btn:nth-child(4) .tab-badge{{background:var(--teal)}}
 .tab-content{{display:none}}
 .tab-content.active{{display:block}}
-.container{{max-width:860px;margin:0 auto;padding:16px}}
-h2{{font-size:15px;font-weight:700;padding:8px 0 6px;border-bottom:2px solid currentColor;margin:20px 0 10px}}
-h3.src-heading{{font-size:14px;font-weight:700;margin:16px 0 8px;color:#4527A0}}
-h2.gikai{{color:#C62828}} h2.important{{color:#E65100}} h2.minor{{color:#546E7A}}
-h2.ibaraki{{color:#1B5E20}} h2.ibaraki-all{{color:#2E7D32}}
-h2.national{{color:#4527A0}} h2.kokkai{{color:#00695C}}
-.card{{background:#fff;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}}
-.card-title{{font-weight:700;font-size:15px;margin-bottom:8px}}
-.card-title a{{color:#1565C0;text-decoration:none}}
-.card-title a:hover{{text-decoration:underline}}
-.card-summary p{{margin-bottom:6px;font-size:14px}}
-.card-summary ul{{padding-left:1.2em;font-size:14px}}
-.card-summary li{{margin-bottom:4px}}
-.card-meta{{display:flex;align-items:center;gap:12px;margin-top:10px}}
-.tag{{color:#fff;font-size:11px;padding:2px 8px;border-radius:12px}}
-.src-link{{font-size:13px;color:#1565C0}}
-table{{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px}}
-td{{padding:10px 14px;border-bottom:1px solid #eee;font-size:14px}}
-td a{{color:#1565C0;text-decoration:none}}
-td a:hover{{text-decoration:underline}}
-.item-desc{{font-size:12px;color:#666;margin-top:3px}}
-.empty{{color:#888;font-size:14px;padding:8px 0}}
-footer{{text-align:center;font-size:12px;color:#888;padding:24px;margin-top:16px}}
+
+/* ── Container ── */
+.container{{max-width:900px;margin:0 auto;padding:16px 16px 32px}}
+
+/* ── Section Header ── */
+.section-head{{display:flex;align-items:center;gap:8px;margin:24px 0 10px;padding-bottom:8px;border-bottom:2px solid currentColor}}
+.section-head h2{{font-size:14px;font-weight:800;letter-spacing:.3px;text-transform:uppercase}}
+.section-count{{font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;background:currentColor;color:#fff;opacity:.85}}
+
+/* ── Cards ── */
+.card{{background:var(--surface);border-radius:var(--radius);margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.07),0 2px 8px rgba(0,0,0,.04);border-left:4px solid var(--accent,#ccc);overflow:hidden;transition:box-shadow .2s}}
+.card:hover{{box-shadow:0 4px 16px rgba(0,0,0,.1)}}
+.card-head{{padding:12px 14px 8px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}}
+.card-title{{font-weight:700;font-size:14px;line-height:1.5;flex:1}}
+.card-title a{{color:var(--text);text-decoration:none}}
+.card-title a:hover{{color:var(--blue);text-decoration:underline}}
+.card-actions{{display:flex;gap:6px;flex-shrink:0;align-items:center;margin-top:2px}}
+.card-toggle{{background:none;border:1px solid var(--border);border-radius:6px;font-size:11px;padding:3px 8px;cursor:pointer;color:var(--muted);display:flex;align-items:center;gap:3px;white-space:nowrap;transition:background .15s}}
+.card-toggle:hover{{background:var(--bg)}}
+.card-toggle[aria-expanded="true"] .chevron{{transform:rotate(180deg)}}
+.chevron{{display:inline-block;transition:transform .2s;font-size:9px}}
+.btn-src{{font-size:11px;color:var(--blue);text-decoration:none;border:1px solid #c5d8f8;border-radius:6px;padding:3px 8px;white-space:nowrap;background:#f0f5ff}}
+.btn-src:hover{{background:#dce9ff}}
+.card-meta-row{{padding:0 14px 10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}}
+.tag{{font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;color:#fff;letter-spacing:.2px}}
+.ai-badge{{font-size:10px;font-weight:700;color:#7C3AED;background:#EDE9FE;padding:2px 7px;border-radius:10px}}
+.meta-pill{{font-size:11px;color:var(--muted);background:var(--bg);padding:2px 7px;border-radius:8px;border:1px solid var(--border)}}
+.card-body{{padding:0 14px 14px;font-size:14px;line-height:1.75;border-top:1px solid var(--border)}}
+.card-body p{{margin:8px 0 4px;color:#2D2D2D}}
+.card-body ul{{padding-left:1.2em;margin:6px 0}}
+.card-body li{{margin-bottom:5px}}
+.excerpt{{color:#374151;font-style:italic;border-left:3px solid var(--border);padding-left:10px;margin:8px 0}}
+
+/* ── List table ── */
+.list-table{{background:var(--surface);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:10px}}
+.list-row{{padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;display:flex;flex-direction:column;gap:3px}}
+.list-row:last-child{{border-bottom:none}}
+.list-row a{{color:var(--text);text-decoration:none;font-weight:600;line-height:1.5}}
+.list-row a:hover{{color:var(--blue)}}
+.list-desc{{font-size:11px;color:var(--muted)}}
+
+/* ── Digest Block ── */
+.digest-block{{background:linear-gradient(135deg,#F0FFF4,#E8F5E9);border:1px solid #A5D6A7;border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;font-size:14px}}
+.digest-block p{{margin-bottom:6px}}
+.digest-block ul{{padding-left:1.2em}}
+.digest-block li{{margin-bottom:4px}}
+
+/* ── Accordion (国政) ── */
+.acc{{background:var(--surface);border-radius:var(--radius);margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);border-left:4px solid var(--ac,#999);overflow:hidden}}
+.acc-head{{list-style:none;padding:13px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;user-select:none;font-weight:700;font-size:14px}}
+.acc-head::-webkit-details-marker{{display:none}}
+.acc-head:hover{{background:var(--bg)}}
+.acc-label{{flex:1;color:var(--ac,#333)}}
+.acc-count{{font-size:11px;font-weight:700;color:var(--ac,#999);background:var(--bg);padding:2px 8px;border-radius:10px;border:1px solid var(--border)}}
+.acc-chev{{color:var(--ac,#999);font-size:16px;transition:transform .25s;line-height:1}}
+details[open] .acc-chev{{transform:rotate(90deg)}}
+.acc-body{{padding:0 10px 10px}}
+.src-section{{margin-top:8px}}
+.src-label{{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;padding:6px 4px 4px}}
+
+/* ── Empty ── */
+.empty{{color:var(--muted);font-size:13px;padding:16px 0;text-align:center}}
+
+/* ── Footer ── */
+footer{{background:var(--navy);color:rgba(255,255,255,.5);font-size:12px;padding:20px;text-align:center;line-height:2}}
+footer a{{color:rgba(255,255,255,.6);text-decoration:none}}
+footer a:hover{{color:#fff}}
+
+/* ── Search ── */
+.search-bar{{padding:10px 0 4px}}
+.search-input{{width:100%;padding:9px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--surface);color:var(--text)}}
+.search-input:focus{{outline:2px solid var(--blue);border-color:transparent}}
+
+/* ── Responsive ── */
+@media(max-width:600px){{
+  .header-brand h1{{font-size:15px}}
+  .card-head{{flex-direction:column;gap:6px}}
+  .card-actions{{align-self:flex-start}}
+  .tab-btn{{padding:11px 12px;font-size:12px}}
+}}
+
+/* ── Print ── */
+@media print{{
+  .tab-bar,.card-actions,.search-bar{{display:none!important}}
+  .tab-content{{display:block!important}}
+  .card-body{{display:block!important}}
+  .acc{{box-shadow:none;border:1px solid #ccc}}
+  body{{font-size:12px}}
+}}
 </style>
 </head>
 <body>
+
 <header>
-  <h1>ひたちなか市・茨城新聞・国政県政 最新情報</h1>
-  <div class="updated">最終更新: {date_str} JST</div>
+<div class="header-inner">
+  <div class="header-brand">
+    <div class="logo">🗾</div>
+    <h1>ひたちなか政治情報ダッシュボード</h1>
+  </div>
+  <div class="header-meta">
+    <span class="header-badge live">● LIVE</span>
+    <span class="header-badge">最終更新: {date_str} JST</span>
+    <span class="header-badge">自動収集: ひたちなか市 / 茨城新聞 / 国政10ソース</span>
+  </div>
+</div>
 </header>
 
 <div class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab('hitachinaka',this)">🏛️ ひたちなか市</button>
-  <button class="tab-btn" onclick="switchTab('ibaraki',this)">🗞️ 茨城新聞</button>
-  <button class="tab-btn" onclick="switchTab('national',this)">🏢 国政・県政</button>
+<div class="tab-bar-inner">
+  <button class="tab-btn active" onclick="switchTab('hitachinaka',this,event)">🏛️ ひたちなか市 {badge(cnt_hita)}</button>
+  <button class="tab-btn" onclick="switchTab('ibaraki',this,event)">🗞️ 茨城新聞 {badge(cnt_ib)}</button>
+  <button class="tab-btn" onclick="switchTab('national',this,event)">🌐 国政・県政 {badge(cnt_nat)}</button>
+  <button class="tab-btn" onclick="switchTab('kokkai',this,event)">📜 国会会議録 {badge(cnt_kok)}</button>
+</div>
 </div>
 
+<!-- ひたちなか市タブ -->
 <div id="hitachinaka" class="tab-content active">
 <div class="container">
-<h2 class="gikai">🔴 議会情報</h2>
-{cards_html(gikai_cards, "#C62828", "議会")}
+  <div class="search-bar"><input class="search-input" type="search" placeholder="🔍 このタブ内を検索..." oninput="filterCards(this)" aria-label="検索"></div>
 
-<h2 class="important">🟡 重要なお知らせ</h2>
-{cards_html(important_cards, "#E65100", "重要")}
+  <div class="section-head" style="color:#B71C1C">
+    <h2>🔴 議会情報</h2>
+    <span class="section-count" style="background:#B71C1C;color:#fff;font-size:10px;padding:1px 7px;border-radius:10px">{len(gikai_cards)}</span>
+  </div>
+  {cards_block(gikai_cards,"#B71C1C","議会","#B71C1C")}
 
-<h2 class="minor">⚪ その他の更新情報（24時間以内）</h2>
-{minor_html()}
+  <div class="section-head" style="color:#D84315">
+    <h2>🟡 重要なお知らせ</h2>
+    <span class="section-count" style="background:#D84315;color:#fff;font-size:10px;padding:1px 7px;border-radius:10px">{len(important_cards)}</span>
+  </div>
+  {cards_block(important_cards,"#D84315","重要","#D84315")}
+
+  <div class="section-head" style="color:#546E7A">
+    <h2>📋 その他（24時間以内）</h2>
+    <span class="section-count" style="background:#546E7A;color:#fff;font-size:10px;padding:1px 7px;border-radius:10px">{len(minor_items)}</span>
+  </div>
+  {minor_html()}
 </div>
 </div>
 
+<!-- 茨城新聞タブ -->
 <div id="ibaraki" class="tab-content">
 <div class="container">
-<h2 class="ibaraki">📍 ひたちなか関連記事</h2>
-{cards_html(ibaraki_local_cards or [], "#1B5E20", "茨城新聞")}
+  <div class="search-bar"><input class="search-input" type="search" placeholder="🔍 このタブ内を検索..." oninput="filterCards(this)" aria-label="検索"></div>
 
-<h2 class="ibaraki-all">📰 本日の茨城ニュース</h2>
-{ibaraki_digest_html(ibaraki_digest, ibaraki_all or [])}
+  <div class="section-head" style="color:#1B5E20">
+    <h2>📍 ひたちなか・那珂湊 関連記事</h2>
+    <span class="section-count" style="background:#1B5E20;color:#fff;font-size:10px;padding:1px 7px;border-radius:10px">{len(ibaraki_local_cards or [])}</span>
+  </div>
+  {cards_block(ibaraki_local_cards or [],"#1B5E20","茨城新聞","#1B5E20","本日のひたちなか関連記事はありません")}
+
+  <div class="section-head" style="color:#2E7D32">
+    <h2>📰 本日の茨城ニュース</h2>
+    <span class="section-count" style="background:#2E7D32;color:#fff;font-size:10px;padding:1px 7px;border-radius:10px">{len(ibaraki_all or [])}</span>
+  </div>
+  {ibaraki_digest_html(ibaraki_digest, ibaraki_all or [])}
 </div>
 </div>
 
+<!-- 国政・県政タブ -->
 <div id="national" class="tab-content">
 <div class="container">
-<h2 class="national">🏢 国政・県政 最新情報</h2>
-{national_section_html()}
-
-<h2 class="kokkai">📜 国会会議録（ひたちなか・茨城関連）</h2>
-{kokkai_section_html()}
+  <div class="search-bar"><input class="search-input" type="search" placeholder="🔍 このタブ内を検索..." oninput="filterCards(this)" aria-label="検索"></div>
+  <p style="font-size:12px;color:var(--muted);margin-bottom:12px">▶ をクリックして展開 / ✦ AI要約付き記事は「詳細」ボタンで内容を表示</p>
+  {national_section_html()}
 </div>
 </div>
 
-<footer>自動生成 | <a href="https://www.city.hitachinaka.lg.jp/" target="_blank">ひたちなか市公式</a> | <a href="https://ibarakinews.jp/" target="_blank">茨城新聞</a> | <a href="https://www.pref.ibaraki.jp/" target="_blank">茨城県</a> | <a href="https://www.kantei.go.jp/" target="_blank">首相官邸</a> | <a href="https://www.soumu.go.jp/" target="_blank">総務省</a> | <a href="https://www.cao.go.jp/bunken-suishin/" target="_blank">内閣府 地方分権</a> | <a href="https://www.maff.go.jp/" target="_blank">農林水産省</a> | <a href="https://www3.nhk.or.jp/news/" target="_blank">NHK</a></footer>
+<!-- 国会会議録タブ -->
+<div id="kokkai" class="tab-content">
+<div class="container">
+  <div class="search-bar"><input class="search-input" type="search" placeholder="🔍 このタブ内を検索..." oninput="filterCards(this)" aria-label="検索"></div>
+  <div class="section-head" style="color:#00695C">
+    <h2>📜 国会会議録（過去14日間）</h2>
+    <span class="section-count" style="background:#00695C;color:#fff;font-size:10px;padding:1px 7px;border-radius:10px">{cnt_kok}</span>
+  </div>
+  <p style="font-size:12px;color:var(--muted);margin-bottom:12px">キーワード: ひたちなか / 那珂湊 / 茨城県 地方自治</p>
+  {kokkai_section_html()}
+</div>
+</div>
+
+<footer>
+  <div>自動生成ダッシュボード &nbsp;|&nbsp; 最終更新: {date_str} JST</div>
+  <div style="margin-top:6px">
+    <a href="https://www.city.hitachinaka.lg.jp/" target="_blank">ひたちなか市</a> ·
+    <a href="https://ibarakinews.jp/" target="_blank">茨城新聞</a> ·
+    <a href="https://www.pref.ibaraki.jp/" target="_blank">茨城県</a> ·
+    <a href="https://www.kantei.go.jp/" target="_blank">首相官邸</a> ·
+    <a href="https://www.soumu.go.jp/" target="_blank">総務省</a> ·
+    <a href="https://www.cao.go.jp/bunken-suishin/" target="_blank">内閣府</a> ·
+    <a href="https://www.maff.go.jp/" target="_blank">農林水産省</a> ·
+    <a href="https://www3.nhk.or.jp/news/" target="_blank">NHK</a>
+  </div>
+</footer>
 
 <script>
-function switchTab(id, btn) {{
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+// タブ切替 + URLハッシュ対応
+function switchTab(id, btn, e) {{
+  if(e) e.preventDefault();
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   btn.classList.add('active');
+  location.hash = id;
+}}
+// ページロード時にハッシュ復元
+(function(){{
+  var h = location.hash.replace('#','');
+  if(!h) return;
+  var el = document.getElementById(h);
+  if(!el) return;
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  var idx = {{'hitachinaka':0,'ibaraki':1,'national':2,'kokkai':3}}[h];
+  if(idx!=null) document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+}})();
+
+// カード折りたたみ
+function toggleCard(id) {{
+  var body = document.getElementById(id);
+  var btn = body.previousElementSibling && body.parentElement.querySelector('[onclick*="' + id + '"]');
+  var isHidden = body.hidden;
+  body.hidden = !isHidden;
+  var btns = document.querySelectorAll('[onclick*="toggleCard(\\''+id+'\\'")"]');
+  btns.forEach(function(b){{ b.setAttribute('aria-expanded', isHidden ? 'true' : 'false'); }});
+}}
+
+// タブ内テキスト検索
+function filterCards(input) {{
+  var q = input.value.toLowerCase().trim();
+  var container = input.closest('.container');
+  container.querySelectorAll('.card,.list-row,.acc').forEach(function(el) {{
+    if(!q) {{ el.style.display=''; return; }}
+    el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
+  }});
 }}
 </script>
 </body>
