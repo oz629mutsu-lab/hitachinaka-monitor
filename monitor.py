@@ -734,79 +734,23 @@ def summary_to_html(text):
     return "\n".join(result)
 
 
-def build_html(gikai_cards, important_cards, minor_items, generated_at,
+def build_html(gikai_cards, important_cards, minor_items, generated_at,  # noqa: C901
                ibaraki_local_cards=None, ibaraki_digest="", ibaraki_all=None,
                national_sources=None, national_cards_by_source=None,
                kokkai_speeches=None,
                subsidy_sources=None, subsidy_cards_by_source=None):
     jst = generated_at + timedelta(hours=9)
-    date_str = jst.strftime("%Y年%m月%d日 %H:%M")
+    date_str = jst.strftime("%-m月%-d日（%a）")
 
     PREF_NAMES = {"茨城県 注目情報", "茨城県 防災情報"}
-    pref_sources = [s for s in (national_sources or []) if s["name"] in PREF_NAMES]
-    govt_sources = [s for s in (national_sources or []) if s["name"] not in PREF_NAMES]
+    pref_sources  = [s for s in (national_sources or []) if s["name"] in PREF_NAMES]
+    govt_sources  = [s for s in (national_sources or []) if s["name"] not in PREF_NAMES]
 
-    cnt_hita = len(gikai_cards) + len(important_cards) + len(minor_items)
-    cnt_ib   = len(ibaraki_local_cards or []) + len(ibaraki_all or [])
-    cnt_pref = sum(len(s["items"]) for s in pref_sources)
-    cnt_nat  = sum(len(s["items"]) for s in govt_sources)
-    cnt_sub  = sum(len(s["items"]) for s in (subsidy_sources or []))
-    cnt_kok  = len(kokkai_speeches or [])
-
-    def badge(n, bg):
-        return f'<span class="tbadge" style="background:{bg}">{n}</span>' if n else ''
-
-    _ci = [0]
-    def card(title, link, summary_html, accent, tag, tag_bg, extra=""):
-        i = _ci[0]; _ci[0] += 1
-        cid = f"c{i}"
-        has = bool(summary_html and summary_html.strip())
-        icls = "c-in ex" if has else "c-in"
-        ix   = f' data-t="{cid}" onclick="tgl(this)"' if has else ''
-        exp  = '<span class="exp-btn"><span class="chv">›</span>要約</span>' if has else ''
-        body = f'<div class="c-body" id="{cid}" hidden>{summary_html}</div>' if has else ''
-        return f'''<div class="card" style="--ac:{accent}">
-  <div class="{icls}"{ix}>
-    <div class="c-ttl"><a href="{esc(link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">{esc(title)}</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:{tag_bg}">{esc(tag)}</span>{extra}
-      <div class="c-acts">{exp}<a href="{esc(link)}" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  {body}
-</div>'''
-
-    def cards(lst, accent, tag, tag_bg, empty=""):
-        if not lst:
-            return f'<p class="empty">{esc(empty or f"本日の{tag}はありません")}</p>'
-        return '<div class="card-grid">' + "".join(card(c["title"], c["link"], c["summary_html"], accent, tag, tag_bg) for c in lst) + '</div>'
-
-    def minor_html():
-        if not minor_items: return '<p class="empty">本日の更新情報はありません</p>'
-        return '<div class="lbox">' + "".join(
-            f'<div class="lrow"><a href="{esc(i["link"])}" target="_blank" rel="noopener">{esc(i["title"])}</a></div>'
-            for i in minor_items
-        ) + '</div>'
-
-    def ib_html(digest, arts):
-        if not arts: return '<p class="empty">本日の茨城新聞ニュースはありません</p>'
-        d = f'<div class="digest">{summary_to_html(digest)}</div>' if digest else ''
-        return d + '<div class="lbox">' + "".join(
-            f'<div class="lrow"><a href="{esc(a["link"])}" target="_blank" rel="noopener">{esc(a["title"])}</a></div>'
-            for a in arts
-        ) + '</div>'
-
-    def kokkai_html():
-        if not kokkai_speeches:
-            return '<p class="empty">過去14日間のひたちなか・茨城関連発言はありません</p>'
-        parts = []
-        for sp in kokkai_speeches:
-            dd = sp["date"].replace("-", "/") if sp["date"] else ""
-            extra = f'<span class="mpill">{esc(sp["house"])}</span><span class="mpill">{esc(sp["meeting"])}</span><span class="mpill">{esc(sp["speaker"])}</span>'
-            sm = f'<p class="excerpt">{esc(sp["excerpt"])}</p>'
-            parts.append(card(f'{sp["meeting"]} — {sp["speaker"]} ({dd})',
-                              sp["link"], sm, "#0D9488", sp["keyword"], "#0D9488", extra=extra))
-        return '<div class="card-grid">' + "".join(parts) + '</div>'
+    cnt_priority = len(gikai_cards) + len(important_cards)
+    cnt_hita  = cnt_priority + len(minor_items)
+    cnt_ib    = len(ibaraki_local_cards or []) + len(ibaraki_all or [])
+    cnt_nat   = sum(len(s["items"]) for s in govt_sources) + len(kokkai_speeches or [])
+    cnt_sub   = sum(len(s["items"]) for s in (subsidy_sources or []))
 
     SOURCE_ICONS = {
         "茨城県 注目情報":"📌","茨城県 防災情報":"🚨",
@@ -817,400 +761,465 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
         "Googleアラート":"🔔",
     }
 
-    def src_group_html(group_defs, src_list, cards_map):
-        if not src_list: return '<p class="empty">本日の情報はありません</p>'
-        src_map = {s["name"]: s for s in src_list}
-        html = ""; shown = set()
-        for grp_id, grp_label, grp_color, grp_names in group_defs:
-            total = sum(len(src_map[n]["items"]) for n in grp_names if n in src_map and src_map[n]["items"])
-            if total == 0: continue
-            shown.update(grp_names)
-            open_attr = ' open' if not html else ''
-            inner = ""
-            for sname in grp_names:
-                s = src_map.get(sname)
-                if not s or not s["items"]: continue
-                icon = SOURCE_ICONS.get(sname, "🔍")
-                top_cards = cards_map.get(sname, [])
-                rest = s["items"][len(top_cards):]
-                inner += f'<div class="src-blk"><div class="src-lbl">{icon} {esc(sname)}</div>'
-                if top_cards:
-                    inner += '<div class="card-grid">' + "".join(
-                        card(c["title"], c["link"], c["summary_html"], grp_color, sname, grp_color,
-                             extra='<span class="ai-tag">✦ AI要約</span>')
-                        for c in top_cards
-                    ) + '</div>'
-                if rest:
-                    inner += '<div class="lbox">'
-                    for item in rest:
-                        desc = f'<span class="ldesc">{esc(item["description"][:60])}…</span>' if item.get("description") else ""
-                        inner += f'<div class="lrow"><a href="{esc(item["link"])}" target="_blank" rel="noopener">{esc(item["title"])}</a>{desc}</div>'
-                    inner += '</div>'
-                inner += '</div>'
-            html += f'<details class="acc"{open_attr}><summary class="acc-hd" style="--ac:{grp_color}"><span class="acc-lbl">{grp_label}</span><span class="acc-cnt">{total}件</span><span class="acc-chv">›</span></summary><div class="acc-bd">{inner}</div></details>'
-        for s in src_list:
-            if s["name"] not in shown and s["items"]:
-                icon = SOURCE_ICONS.get(s["name"], "🔍"); color = "#546E7A"
-                top_cards = cards_map.get(s["name"], [])
-                inner = f'<div class="src-blk"><div class="src-lbl">{icon} {esc(s["name"])}</div>'
-                if top_cards:
-                    inner += '<div class="card-grid">' + "".join(
-                        card(c["title"], c["link"], c["summary_html"], color, s["name"], color,
-                             extra='<span class="ai-tag">✦ AI要約</span>')
-                        for c in top_cards
-                    ) + '</div>'
-                rest = s["items"][len(top_cards):]
-                if rest:
-                    inner += '<div class="lbox">' + "".join(
-                        f'<div class="lrow"><a href="{esc(i["link"])}" target="_blank" rel="noopener">{esc(i["title"])}</a></div>'
-                        for i in rest
-                    ) + '</div>'
-                inner += '</div>'
-                html += f'<details class="acc"><summary class="acc-hd" style="--ac:{color}"><span class="acc-lbl">{icon} {esc(s["name"])}</span><span class="acc-cnt">{len(s["items"])}件</span><span class="acc-chv">›</span></summary><div class="acc-bd">{inner}</div></details>'
-        return html or '<p class="empty">本日の情報はありません</p>'
+    # ── HTML helpers ──
 
-    PREF_GROUPS = [
-        ("pc", "📌 注目情報",  "#1B5E20", ["茨城県 注目情報"]),
-        ("pb", "🚨 防災情報",  "#C62828", ["茨城県 防災情報"]),
+    def top_story(eyebrow, title, link, src_label, summary_html,
+                  accent="#1D4ED8", grad="linear-gradient(135deg,#EFF6FF 0%,#DBEAFE 100%)",
+                  shadow="rgba(29,78,216,.10)", badge_html=""):
+        sum_block = f'<div class="ts-summary">{summary_html}</div>' if summary_html and summary_html.strip() else ''
+        badge_block = f'{badge_html}' if badge_html else ''
+        return (
+            f'<div class="top-story" style="background:{grad};border-left:4px solid {accent};'
+            f'box-shadow:0 2px 10px {shadow};">'
+            f'<div class="ts-eyebrow" style="color:{accent}">'
+            f'<span class="bar" style="background:{accent}"></span>{esc(eyebrow)}</div>'
+            f'<div class="ts-title">{esc(title)}</div>'
+            f'<div class="ts-meta"><span>{esc(src_label)}</span>{badge_block}</div>'
+            f'{sum_block}'
+            f'<a class="ts-link" href="{esc(link)}" target="_blank" rel="noopener" '
+            f'style="color:{accent}">詳細を読む ›</a>'
+            f'</div>'
+        )
+
+    def sec_div(label):
+        return (
+            f'<div class="sec-divider">'
+            f'<span class="sec-divider-label">{esc(label)}</span>'
+            f'</div>'
+        )
+
+    def art_row(title, link, src_label, label_html=""):
+        return (
+            f'<a class="article" href="{esc(link)}" target="_blank" rel="noopener">'
+            f'<div class="art-body">'
+            f'<div class="art-title">{label_html}{esc(title)}</div>'
+            f'<div class="art-meta"><span>{esc(src_label)}</span></div>'
+            f'</div>'
+            f'<div class="art-chevron">›</div>'
+            f'</a>'
+        )
+
+    def empty_msg(text="本日の情報はありません"):
+        return f'<div class="empty-msg">{esc(text)}</div>'
+
+    def bnav_badge(n):
+        return f'<div class="bnav-badge">{n}</div>' if n else ''
+
+    # ── Tab 1: ひたちなか市 ──
+    hita_top = None
+    hita_top_label = ""
+    rest_gikai     = list(gikai_cards)
+    rest_important = list(important_cards)
+
+    if gikai_cards:
+        hita_top = gikai_cards[0]; hita_top_label = "議会情報"; rest_gikai = gikai_cards[1:]
+    elif important_cards:
+        hita_top = important_cards[0]; hita_top_label = "重要なお知らせ"; rest_important = important_cards[1:]
+
+    hita_html = ""
+    if hita_top:
+        hita_html += top_story(
+            eyebrow=f"ひたちなか市・{hita_top_label}", title=hita_top["title"],
+            link=hita_top["link"], src_label="🏛️ 市公式",
+            summary_html=hita_top.get("summary_html", ""))
+
+    if rest_gikai:
+        hita_html += sec_div("議会情報")
+        for c in rest_gikai:
+            hita_html += art_row(c["title"], c["link"], "🏛️ 議会")
+
+    # important_cards: show all if top was gikai, otherwise rest
+    show_important = important_cards if hita_top_label != "重要なお知らせ" else rest_important
+    if show_important:
+        hita_html += sec_div("重要なお知らせ")
+        for c in show_important:
+            hita_html += art_row(c["title"], c["link"], "📌 重要",
+                label_html='<span class="art-label urgent">🔴 重要</span>')
+
+    if minor_items:
+        hita_html += sec_div("その他")
+        for i in minor_items:
+            hita_html += art_row(i["title"], i["link"], "🏛️ 市公式")
+
+    if not hita_html:
+        hita_html = empty_msg("本日のひたちなか市情報はありません")
+
+    # ── Tab 2: 茨城 ──
+    ib_local = list(ibaraki_local_cards or [])
+    ib_all   = list(ibaraki_all or [])
+    ib_top   = None
+    rest_ib_local = ib_local
+
+    if ib_local:
+        ib_top = ib_local[0]; rest_ib_local = ib_local[1:]
+    elif ib_all:
+        first = ib_all[0]
+        ib_top = {"title": first["title"], "link": first["link"], "summary_html": ""}
+
+    ib_html = ""
+    if ib_top:
+        ib_html += top_story(
+            eyebrow="茨城新聞・今日の注目", title=ib_top["title"],
+            link=ib_top["link"], src_label="🗞️ 茨城新聞",
+            summary_html=ib_top.get("summary_html", ""),
+            accent="#6D28D9",
+            grad="linear-gradient(135deg,#F5F3FF 0%,#EDE9FE 100%)",
+            shadow="rgba(109,40,217,.10)")
+
+    if rest_ib_local:
+        ib_html += sec_div("ひたちなか関連")
+        for c in rest_ib_local:
+            ib_html += art_row(c["title"], c["link"], "🗞️ 茨城新聞")
+
+    local_links = {c["link"] for c in ib_local}
+    top_link    = ib_top["link"] if ib_top and not ib_local else ""
+    ib_others = [i for i in ib_all if i["link"] not in local_links and i["link"] != top_link]
+    if ib_others:
+        ib_html += sec_div("茨城新聞")
+        for i in ib_others:
+            ib_html += art_row(i["title"], i["link"], "🗞️ 茨城新聞")
+
+    for s in pref_sources:
+        if not s["items"]: continue
+        icon = SOURCE_ICONS.get(s["name"], "📌")
+        ib_html += sec_div(f"{icon} {s['name']}")
+        shown = set()
+        for c in (national_cards_by_source or {}).get(s["name"], []):
+            ib_html += art_row(c["title"], c["link"], f"{icon} {s['name']}")
+            shown.add(c["link"])
+        for item in s["items"]:
+            if item["link"] not in shown:
+                ib_html += art_row(item["title"], item["link"], f"{icon} {s['name']}")
+
+    if not ib_html:
+        ib_html = empty_msg("本日の茨城情報はありません")
+
+    # ── Tab 3: 国政・国会 ──
+    nat_priority = ["総務省","首相官邸","NHK 政治","内閣府 地方分権改革",
+                    "農林水産省","国土交通省","厚生労働省","環境省"]
+    nat_top = None; nat_top_src = ""
+    for sname in nat_priority:
+        cs = (national_cards_by_source or {}).get(sname, [])
+        if cs:
+            nat_top = cs[0]; nat_top_src = sname; break
+    if not nat_top:
+        for s in govt_sources:
+            if s["items"]:
+                nat_top = {"title": s["items"][0]["title"], "link": s["items"][0]["link"], "summary_html": ""}
+                nat_top_src = s["name"]; break
+
+    nat_html = ""
+    if nat_top:
+        icon = SOURCE_ICONS.get(nat_top_src, "🏢")
+        nat_html += top_story(
+            eyebrow=f"{nat_top_src}・今日の注目", title=nat_top["title"],
+            link=nat_top["link"], src_label=f"{icon} {nat_top_src}",
+            summary_html=nat_top.get("summary_html", ""),
+            accent="#1E40AF",
+            grad="linear-gradient(135deg,#EFF6FF 0%,#DBEAFE 100%)",
+            shadow="rgba(30,64,175,.10)")
+
+    nat_top_link = nat_top["link"] if nat_top else ""
+    GOVT_GROUPS_DEF = [
+        ("官邸・総務・内閣府",       ["首相官邸","総務省","内閣府 地方分権改革"]),
+        ("省庁（農水・国交・厚労・環境）", ["農林水産省","国土交通省","厚生労働省","環境省"]),
+        ("NHK政治",                   ["NHK 政治"]),
     ]
-    GOVT_GROUPS = [
-        ("kg", "🏛️ 官邸・総務・内閣府", "#1565C0", ["首相官邸","総務省","内閣府 地方分権改革"]),
-        ("mn", "🏗️ 省庁（農水・国交・厚労・環境）", "#4527A0", ["農林水産省","国土交通省","厚生労働省","環境省"]),
-        ("md", "📺 NHK政治", "#C62828", ["NHK 政治"]),
-    ]
-    SUBSIDY_GROUPS = [
-        ("sm", "🏭 中小企業庁",    "#5D4037", ["中小企業庁"]),
-        ("mp", "💼 ミラサポplus", "#6D4C41", ["ミラサポplus"]),
-        ("sf", "🔗 省庁フィルタ",  "#8D6E63", ["関連情報（省庁フィルタ）"]),
-    ]
+    for grp_label, src_names in GOVT_GROUPS_DEF:
+        grp_html = ""
+        for sname in src_names:
+            s = next((x for x in govt_sources if x["name"] == sname), None)
+            if not s or not s["items"]: continue
+            icon = SOURCE_ICONS.get(sname, "🏢")
+            shown = set()
+            for c in (national_cards_by_source or {}).get(sname, []):
+                if c["link"] == nat_top_link: continue
+                grp_html += art_row(c["title"], c["link"], f"{icon} {sname}")
+                shown.add(c["link"])
+            for item in s["items"]:
+                if item["link"] not in shown and item["link"] != nat_top_link:
+                    grp_html += art_row(item["title"], item["link"], f"{icon} {sname}")
+        if grp_html:
+            nat_html += sec_div(grp_label) + grp_html
+
+    if kokkai_speeches:
+        nat_html += sec_div("国会会議録")
+        for sp in kokkai_speeches:
+            dd = sp["date"].replace("-", "/") if sp.get("date") else ""
+            nat_html += art_row(
+                title=f'{sp["meeting"]} — {sp["speaker"]} ({dd})',
+                link=sp["link"],
+                src_label=f'📜 {sp.get("keyword","ひたちなか")}')
+
+    if not nat_html:
+        nat_html = empty_msg("本日の国政・国会情報はありません")
+
+    # ── Tab 4: 補助金 ──
+    sub_priority = ["中小企業庁","ミラサポplus","関連情報（省庁フィルタ）"]
+    sub_top = None; sub_top_src = ""
+    for sname in sub_priority:
+        cs = (subsidy_cards_by_source or {}).get(sname, [])
+        if cs:
+            sub_top = cs[0]; sub_top_src = sname; break
+    if not sub_top:
+        for s in (subsidy_sources or []):
+            if s["items"]:
+                sub_top = {"title": s["items"][0]["title"], "link": s["items"][0]["link"], "summary_html": ""}
+                sub_top_src = s["name"]; break
+
+    sub_html = ""
+    if sub_top:
+        icon = SOURCE_ICONS.get(sub_top_src, "💰")
+        sub_html += top_story(
+            eyebrow=f"{sub_top_src}・注目の補助金", title=sub_top["title"],
+            link=sub_top["link"], src_label=f"{icon} {sub_top_src}",
+            summary_html=sub_top.get("summary_html", ""),
+            accent="#D97706",
+            grad="linear-gradient(135deg,#FFFBEB 0%,#FEF3C7 100%)",
+            shadow="rgba(217,119,6,.10)")
+
+    sub_top_link = sub_top["link"] if sub_top else ""
+    sub_items_html = ""
+    for sname in sub_priority:
+        s = next((x for x in (subsidy_sources or []) if x["name"] == sname), None)
+        if not s or not s["items"]: continue
+        icon = SOURCE_ICONS.get(sname, "💰")
+        shown = set()
+        for c in (subsidy_cards_by_source or {}).get(sname, []):
+            if c["link"] == sub_top_link: continue
+            sub_items_html += art_row(c["title"], c["link"], f"{icon} {sname}")
+            shown.add(c["link"])
+        for item in s["items"]:
+            if item["link"] not in shown and item["link"] != sub_top_link:
+                sub_items_html += art_row(item["title"], item["link"], f"{icon} {sname}")
+    if sub_items_html:
+        sub_html += sec_div("補助金・助成金一覧") + sub_items_html
+
+    if not sub_html:
+        sub_html = empty_msg("本日の補助金情報はありません")
+
+    # ── badge counts ──
+    hita_bdg = bnav_badge(cnt_priority or "")
+    sub_bdg  = bnav_badge(cnt_sub or "")
 
     return f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ひたちなか政治情報ダッシュボード | {date_str}</title>
+<title>ひたちなか政治情報 | {date_str}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{{
-  --bg:#F6F5F0;--s:#FFFFFF;--s2:#F2F1EC;
-  --b:#E4E2DB;--b2:#C8C6BF;
-  --t:#111111;--t2:#3D3D3D;--m:#777777;--f:#AAAAAA;
-  --brand:#B71C1C;
-  --sh1:0 2px 12px rgba(0,0,0,.07);
-  --r:3px;--r2:3px;
-}}
 *{{box-sizing:border-box;margin:0;padding:0}}
-body{{font-family:'Noto Sans JP',-apple-system,sans-serif;background:var(--bg);color:var(--t);line-height:1.75;font-size:15px;-webkit-font-smoothing:antialiased}}
+:root{{
+  --bg:#F2F2F7;--sheet:#FFF;
+  --t:#000;--t2:#1C1C1E;--m:#3C3C43;--sub:#8E8E93;
+  --b:#E5E5EA;--b2:rgba(0,0,0,.1);
+  --brand:#1D4ED8;--brand-lt:#EFF6FF;--brand-md:#DBEAFE;
+  --red:#DC2626;--red-lt:#FEE2E2;
+}}
+body{{font-family:'Noto Sans JP',-apple-system,sans-serif;background:var(--bg);
+  color:var(--t);-webkit-font-smoothing:antialiased;max-width:768px;margin:0 auto;min-height:100vh}}
 
-/* Header — Magazine white */
-header{{background:var(--s);border-bottom:3px solid var(--brand)}}
-.hi{{max-width:1100px;margin:0 auto;padding:14px 20px 10px}}
-.hb{{display:flex;align-items:baseline;gap:0;margin-bottom:5px}}
-.hl{{display:none}}
-.ht{{font-family:'Noto Serif JP',serif;font-size:22px;font-weight:900;color:var(--brand);letter-spacing:-.5px;line-height:1.2}}
-.hm{{display:flex;align-items:center;gap:0;flex-wrap:wrap}}
-.hbg{{background:none;border:none;border-radius:0;font-size:11px;padding:0 10px;color:var(--m)}}
-.hbg+.hbg{{border-left:1px solid var(--b2)}}
-.hbg.live{{color:var(--brand);font-weight:700;padding-left:16px;position:relative}}
-.hbg.live::before{{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:var(--brand);animation:pulse 2s infinite}}
-@keyframes pulse{{0%,100%{{opacity:1}}50%{{opacity:.3}}}}
+/* ── ヘッダー ── */
+.hd{{height:52px;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);border-bottom:.5px solid var(--b2);
+  padding:0 16px;display:flex;justify-content:space-between;align-items:center;
+  position:sticky;top:0;z-index:30}}
+.hd-date{{font-size:15px;font-weight:700;color:var(--t2)}}
+.hd-right{{display:flex;gap:6px}}
+.chip{{font-size:13px;font-weight:700;padding:4px 10px;border-radius:99px;
+  text-decoration:none;display:inline-block}}
+.chip.alert{{background:var(--red-lt);color:var(--red)}}
+.chip.gray{{background:var(--b);color:var(--m)}}
 
-/* Tab bar — Magazine white */
-.tb{{background:var(--s);border-bottom:1px solid var(--b);position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.06)}}
-.tbi{{max-width:1100px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}}
-.tbi::-webkit-scrollbar{{display:none}}
-.tbtn{{flex-shrink:0;padding:11px 15px 9px;font-size:12.5px;font-weight:700;font-family:'Noto Sans JP',sans-serif;border:none;background:none;cursor:pointer;color:var(--m);border-bottom:3px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:color .15s,border-color .15s}}
-.tbtn:hover{{color:var(--t)}}
-.tbtn.active{{color:var(--brand);border-bottom-color:var(--brand)}}
-.tbadge{{font-size:9px;font-weight:800;padding:1px 5px;border-radius:2px;background:var(--brand);color:#fff;min-width:14px;text-align:center;line-height:1.7}}
-.tab-content{{display:none}}
+/* ── タブ ── */
+.tab-content{{display:none;padding-bottom:88px}}
 .tab-content.active{{display:block}}
 
-/* Container */
-.wrap{{max-width:1100px;margin:0 auto;padding:0 0 60px;background:var(--s)}}
+/* ── ページシート（タブ内コンテンツを1枚に） ── */
+.page-sheet{{background:var(--sheet);border-top:.5px solid var(--b2);border-bottom:.5px solid var(--b2);margin-top:20px}}
 
-/* Section head — Magazine ruled style */
-.sh{{display:flex;align-items:baseline;gap:10px;padding:18px 20px 8px;border-bottom:2px solid currentColor;margin:0}}
-.sh h2{{font-family:'Noto Serif JP',serif;font-size:14px;font-weight:900;letter-spacing:.2px;color:currentColor}}
-.sc{{font-size:10px;font-weight:700;padding:2px 6px;border:1px solid currentColor;color:currentColor;background:none!important;line-height:1.6;border-radius:2px;margin-left:auto}}
+/* ── TOP STORY ── */
+.top-story{{margin:16px 16px 0;border-radius:14px;padding:16px 16px 14px;overflow:hidden}}
+.ts-eyebrow{{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  display:flex;align-items:center;gap:5px;margin-bottom:9px}}
+.ts-eyebrow .bar{{display:inline-block;width:14px;height:2px;border-radius:2px;background:currentColor}}
+.ts-title{{font-size:20px;font-weight:800;line-height:1.45;letter-spacing:-.01em;
+  color:var(--t);margin-bottom:9px}}
+.ts-meta{{display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  font-size:13px;color:var(--sub);margin-bottom:11px}}
+.ts-badge{{font-size:12px;font-weight:700;padding:2px 8px;border-radius:5px;display:inline-block}}
+.ts-badge.red{{background:var(--red-lt);color:var(--red)}}
+.ts-badge.blue{{background:var(--brand-lt);color:var(--brand)}}
+.ts-summary{{font-size:14px;line-height:1.7;color:var(--m);
+  border-left:2px solid rgba(0,0,0,.15);padding-left:11px;margin-bottom:12px}}
+.ts-summary p{{margin:4px 0;color:var(--m)}}
+.ts-summary ul{{padding-left:1.4em;margin:4px 0}}
+.ts-summary li{{margin-bottom:3px;color:var(--m)}}
+.ts-link{{font-size:14px;font-weight:700;text-decoration:none;
+  display:flex;justify-content:flex-end;align-items:center;gap:2px}}
 
-/* Card — article teaser style */
-.card{{background:var(--s);border-radius:0;margin-bottom:0;box-shadow:none;border:none;border-bottom:1px solid var(--b);overflow:hidden;transition:background .12s}}
-.card:last-child{{border-bottom:none}}
-.card:hover{{background:var(--s2)}}
-.c-in{{padding:14px 20px 12px}}
-.c-in.ex{{cursor:pointer}}
-.c-in.ex:active{{background:var(--s2)}}
-.c-in.ex.expanded .chv{{transform:rotate(90deg);color:var(--brand)}}
-.c-ttl{{margin-bottom:10px}}
-.c-ttl a{{font-family:'Noto Serif JP',serif;font-weight:700;font-size:15.5px;line-height:1.65;color:var(--t);text-decoration:none;display:block;word-break:break-all}}
-.c-ttl a:hover{{color:var(--brand)}}
-.c-ft{{display:flex;align-items:center;gap:6px;flex-wrap:wrap}}
-.chip{{font-size:10px;font-weight:700;padding:1px 7px;border-radius:2px;color:#fff;background:var(--cc,#888);letter-spacing:.2px;flex-shrink:0}}
-.ai-tag{{font-size:10px;font-weight:700;color:var(--brand);border:1px solid var(--brand);padding:1px 6px;border-radius:2px;flex-shrink:0}}
-.mpill{{font-size:11px;color:var(--m);border:1px solid var(--b2);padding:1px 6px;border-radius:2px;flex-shrink:0}}
-.c-acts{{display:flex;align-items:center;gap:5px;margin-left:auto;flex-shrink:0}}
-.exp-btn{{display:flex;align-items:center;gap:2px;font-size:10px;font-weight:700;color:var(--m);padding:2px 7px;border-radius:2px;border:1px solid var(--b);background:none;white-space:nowrap;transition:background .1s;font-family:'Noto Sans JP',sans-serif}}
-.exp-btn:hover{{background:var(--b)}}
-.chv{{font-size:14px;color:var(--f);transition:transform .2s,color .2s;line-height:1;user-select:none}}
-.out-btn{{font-size:11px;color:var(--m);text-decoration:none;padding:2px 7px;border-radius:2px;border:1px solid var(--b);background:none;transition:background .1s;white-space:nowrap}}
-.out-btn:hover{{background:var(--b)}}
-.c-body{{padding:12px 20px 16px;border-top:1px solid var(--b);font-size:13.5px;line-height:1.85;background:var(--s2);animation:fadein .2s ease}}
-.c-body p{{margin:6px 0 4px;color:var(--t2)}}
-.c-body ul{{padding-left:1.5em;margin:6px 0}}
-.c-body li{{margin-bottom:5px;color:var(--t2)}}
-.excerpt{{color:var(--t2);font-style:italic;border-left:3px solid var(--b2);padding-left:12px;margin:6px 0;font-size:13px}}
-@keyframes fadein{{from{{opacity:0;transform:translateY(-4px)}}to{{opacity:1;transform:translateY(0)}}}}
+/* ── セクション区切り ── */
+.sec-divider{{display:flex;align-items:center;gap:10px;padding:20px 16px 8px}}
+.sec-divider-label{{font-size:12px;font-weight:700;letter-spacing:.06em;
+  color:var(--sub);white-space:nowrap}}
+.sec-divider::after{{content:'';flex:1;height:.5px;background:var(--b)}}
 
-/* Card grid — PC 2-col with ruled separator */
-.card-grid{{}}
-@media(min-width:768px){{
-  .wrap{{padding:0 20px 60px}}
-  .sh{{padding:20px 0 8px;margin:16px 0 0}}
-  .sbar{{padding:10px 0 8px}}
-  .hint{{padding:4px 0}}
-  .card-grid{{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--b);border-bottom:1px solid var(--b)}}
-  .card-grid .card{{background:var(--s);border:none;border-radius:0;box-shadow:none;margin-bottom:0}}
-  .card-grid .card:last-child{{border-bottom:none}}
-  .card-grid .card:hover{{background:var(--s2)}}
-  .lrow,.acc-hd{{padding-left:0;padding-right:0}}
-  .src-lbl{{padding-left:0}}
-  .c-in{{padding-left:16px;padding-right:16px}}
-  .c-body{{padding-left:16px;padding-right:16px}}
-}}
-@media(min-width:1024px){{
-  .wrap{{padding:0 24px 60px}}
-}}
+/* ── 記事行 ── */
+.article{{display:flex;gap:12px;padding:13px 16px;min-height:48px;
+  align-items:flex-start;text-decoration:none;
+  border-top:.5px solid var(--b);
+  transition:background .12s ease,transform .08s ease}}
+.article:active{{background:#F2F2F7;transform:scale(.99)}}
+.art-body{{flex:1;min-width:0}}
+.art-title{{font-size:16px;font-weight:600;line-height:1.55;color:var(--t2);
+  margin-bottom:5px;display:block;word-break:break-all}}
+.art-meta{{font-size:13px;color:var(--sub);display:flex;gap:6px;align-items:center;flex-wrap:wrap}}
+.art-label{{font-size:12px;font-weight:700;padding:2px 8px;border-radius:5px;
+  display:inline-block;margin-right:4px}}
+.art-label.urgent{{background:var(--red-lt);color:var(--red)}}
+.art-badge{{font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;display:inline-block}}
+.art-badge.red{{background:var(--red-lt);color:var(--red)}}
+.art-badge.blue{{background:var(--brand-lt);color:var(--brand)}}
+.art-chevron{{color:#C7C7CC;font-size:18px;flex-shrink:0;align-self:center;font-weight:300}}
 
-/* List box */
-.lbox{{background:var(--s);overflow:hidden}}
-.lrow{{padding:11px 20px;border-bottom:1px solid var(--b);font-size:13px;display:flex;flex-direction:column;gap:3px;transition:background .12s}}
-.lrow:last-child{{border-bottom:none}}
-.lrow:hover{{background:var(--s2)}}
-.lrow a{{font-family:'Noto Serif JP',serif;color:var(--t);text-decoration:none;font-weight:700;line-height:1.55}}
-.lrow a:hover{{color:var(--brand)}}
-.ldesc{{font-size:11px;color:var(--f)}}
+/* ── 空メッセージ ── */
+.empty-msg{{color:var(--sub);font-size:14px;text-align:center;padding:36px 16px}}
 
-/* Digest */
-.digest{{background:#FDFBF5;border-left:4px solid #2E7D32;padding:14px 20px;font-size:13.5px;line-height:1.85}}
-.digest p{{margin-bottom:6px;color:var(--t2)}}
-.digest ul{{padding-left:1.5em}}
-.digest li{{margin-bottom:4px;color:var(--t2)}}
+/* ── ボトムナビ ── */
+.bottomnav{{position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:768px;
+  background:rgba(255,255,255,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-top:.5px solid var(--b2);display:flex;z-index:20;
+  padding-bottom:env(safe-area-inset-bottom)}}
+.bnav-item{{flex:1;display:flex;flex-direction:column;align-items:center;
+  padding:10px 4px 12px;gap:3px;cursor:pointer;position:relative;
+  -webkit-tap-highlight-color:transparent}}
+.bnav-icon{{font-size:22px;line-height:1}}
+.bnav-label{{font-size:10px;font-weight:500;color:var(--sub)}}
+.bnav-item.active .bnav-label{{color:var(--brand);font-weight:700}}
+.bnav-item.active .bnav-icon::after{{content:'';position:absolute;bottom:-4px;left:50%;
+  transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--brand)}}
+.bnav-badge{{position:absolute;top:5px;right:calc(50% - 22px);
+  background:var(--red);color:#fff;font-size:10px;font-weight:700;
+  min-width:17px;height:17px;border-radius:99px;
+  display:flex;align-items:center;justify-content:center;padding:0 4px}}
 
-/* Accordion — Magazine ruled */
-.acc{{background:var(--s);border-radius:0;margin-bottom:0;border:none;border-bottom:1px solid var(--b);overflow:hidden}}
-.acc:last-child{{border-bottom:none}}
-.acc-hd{{list-style:none;padding:13px 20px;cursor:pointer;display:flex;align-items:center;gap:10px;user-select:none;font-weight:700;font-size:14px;transition:background .12s;border-left:4px solid var(--ac,var(--brand));font-family:'Noto Sans JP',sans-serif}}
-.acc-hd::-webkit-details-marker{{display:none}}
-.acc-hd:hover{{background:var(--s2)}}
-.acc-lbl{{flex:1;color:var(--t)}}
-.acc-cnt{{font-size:10px;font-weight:700;color:var(--m);border:1px solid var(--b2);padding:1px 7px;border-radius:2px}}
-.acc-chv{{color:var(--f);font-size:15px;transition:transform .2s;line-height:1;flex-shrink:0}}
-details[open] .acc-chv{{transform:rotate(90deg)}}
-details[open] .acc-bd{{animation:fadein .2s ease}}
-.acc-bd{{padding:0}}
-.src-blk{{border-top:1px solid var(--b)}}
-.src-lbl{{font-size:10px;font-weight:800;color:var(--m);letter-spacing:1px;text-transform:uppercase;padding:6px 20px 4px;background:var(--bg);font-family:'Noto Sans JP',sans-serif}}
+/* ── FAB ── */
+.fab{{position:fixed;bottom:84px;right:16px;z-index:19;
+  width:40px;height:40px;border-radius:50%;
+  background:rgba(255,255,255,.9);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:.5px solid var(--b);box-shadow:0 2px 10px rgba(0,0,0,.12);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;cursor:pointer;color:var(--m);
+  opacity:0;pointer-events:none;transition:opacity .2s ease;
+  -webkit-tap-highlight-color:transparent}}
+.fab.show{{opacity:1;pointer-events:auto}}
 
-/* Search */
-.sbar{{padding:10px 20px 8px;background:var(--s);border-bottom:1px solid var(--b)}}
-.sinput{{width:100%;padding:8px 12px;border:1px solid var(--b);border-radius:var(--r2);font-size:13px;background:var(--bg);color:var(--t);font-family:'Noto Sans JP',sans-serif;transition:border-color .15s}}
-.sinput:focus{{outline:none;border-color:var(--brand);box-shadow:0 0 0 2px rgba(183,28,28,.1)}}
-.hint{{font-size:11.5px;color:var(--f);padding:5px 20px;background:var(--s);border-bottom:1px solid var(--b)}}
-.empty{{color:var(--m);font-size:13px;padding:36px 0;text-align:center}}
-
-/* Footer */
-footer{{background:var(--t);color:rgba(255,255,255,.35);font-size:11px;padding:22px 20px;text-align:center;line-height:2.4}}
-footer a{{color:rgba(255,255,255,.5);text-decoration:none}}
-footer a:hover{{color:#fff}}
-
-/* Mobile */
-@media(max-width:600px){{
-  .ht{{font-size:18px}}
-  .c-in{{padding-left:14px;padding-right:14px}}
-  .c-body{{padding-left:14px;padding-right:14px}}
-  .sh{{padding:14px 14px 8px}}
-  .sbar{{padding:8px 14px 6px}}
-  .hint{{padding:5px 14px}}
-  .lrow{{padding-left:14px;padding-right:14px}}
-  .acc-hd{{padding-left:14px;padding-right:14px}}
-  .src-lbl{{padding-left:14px}}
-  .c-ft{{flex-wrap:wrap}}
-  .c-acts{{margin-left:0}}
-  .tbtn{{padding:10px 12px;font-size:12px}}
+/* PC: 最大幅制限でもきれいに */
+@media(min-width:600px){{
+  .top-story{{margin:20px 20px 0}}
+  .sec-divider{{padding:20px 20px 8px}}
+  .article{{padding:14px 20px}}
 }}
 
 /* Print */
 @media print{{
-  .tb,.c-acts,.sbar,.hint{{display:none!important}}
+  .hd,.bottomnav,.fab{{display:none!important}}
   .tab-content{{display:block!important}}
-  .c-body{{display:block!important}}
-  body{{font-size:12px}}
+  body{{max-width:none}}
 }}
 </style>
 </head>
 <body>
 
-<header>
-<div class="hi">
-  <h1 class="ht">ひたちなか市 政治情報</h1>
-  <div class="hm">
-    <span class="hbg live">LIVE</span>
-    <span class="hbg">{date_str} JST</span>
-    <span class="hbg">Gemini Flash 自動要約</span>
+<!-- ヘッダー -->
+<div class="hd">
+  <div class="hd-date">{date_str}</div>
+  <div class="hd-right">
+    <a class="chip alert" href="#tab-hita">{"⚠️ 要確認 " + str(cnt_priority) if cnt_priority else "📭 新着なし"}</a>
+    <span class="chip gray">新着 {cnt_hita + cnt_ib + cnt_nat + cnt_sub}</span>
   </div>
 </div>
-</header>
 
-<div class="tb">
-<div class="tbi">
-  <button class="tbtn active" onclick="sw('hitachinaka',this)">🏛️ ひたちなか市{badge(cnt_hita,"#B71C1C")}</button>
-  <button class="tbtn" onclick="sw('ibaraki',this)">🗞️ 茨城新聞{badge(cnt_ib,"#B71C1C")}</button>
-  <button class="tbtn" onclick="sw('pref',this)">🌿 茨城県政{badge(cnt_pref,"#B71C1C")}</button>
-  <button class="tbtn" onclick="sw('national',this)">🏢 国政・省庁{badge(cnt_nat,"#B71C1C")}</button>
-  <button class="tbtn" onclick="sw('subsidy',this)">💰 補助金{badge(cnt_sub,"#B71C1C")}</button>
-  <button class="tbtn" onclick="sw('kokkai',this)">📜 国会{badge(cnt_kok,"#B71C1C")}</button>
-</div>
-</div>
-
-<!-- ひたちなか市タブ -->
-<div id="hitachinaka" class="tab-content active">
-<div class="wrap">
-  <div class="sbar"><input class="sinput" type="search" placeholder="🔍 このタブ内を検索..." oninput="filt(this)" aria-label="検索"></div>
-
-  <div class="sh" style="color:#C62828">
-    <h2>🔴 議会情報</h2>
-    <span class="sc" style="background:#C62828">{len(gikai_cards)}</span>
+<!-- ── ひたちなか市 ── -->
+<div class="tab-content active" id="tab-hita">
+  <div class="page-sheet" id="tab-hita-sheet">
+{hita_html}
   </div>
-  {cards(gikai_cards,"#C62828","議会","#C62828")}
+</div>
 
-  <div class="sh" style="color:#E65100">
-    <h2>🟡 重要なお知らせ</h2>
-    <span class="sc" style="background:#E65100">{len(important_cards)}</span>
+<!-- ── 茨城 ── -->
+<div class="tab-content" id="tab-ibaraki">
+  <div class="page-sheet">
+{ib_html}
   </div>
-  {cards(important_cards,"#E65100","重要","#E65100")}
+</div>
 
-  <div class="sh" style="color:#546E7A">
-    <h2>📋 その他（24時間以内）</h2>
-    <span class="sc" style="background:#546E7A">{len(minor_items)}</span>
+<!-- ── 国政・国会 ── -->
+<div class="tab-content" id="tab-national">
+  <div class="page-sheet">
+{nat_html}
   </div>
-  {minor_html()}
-</div>
 </div>
 
-<!-- 茨城新聞タブ -->
-<div id="ibaraki" class="tab-content">
-<div class="wrap">
-  <div class="sbar"><input class="sinput" type="search" placeholder="🔍 このタブ内を検索..." oninput="filt(this)" aria-label="検索"></div>
-
-  <div class="sh" style="color:#1B5E20">
-    <h2>📍 ひたちなか・那珂湊 関連</h2>
-    <span class="sc" style="background:#1B5E20">{len(ibaraki_local_cards or [])}</span>
+<!-- ── 補助金 ── -->
+<div class="tab-content" id="tab-subsidy">
+  <div class="page-sheet">
+{sub_html}
   </div>
-  {cards(ibaraki_local_cards or [],"#1B5E20","茨城新聞","#1B5E20","本日のひたちなか関連記事はありません")}
+</div>
 
-  <div class="sh" style="color:#2E7D32">
-    <h2>📰 本日の茨城ニュース</h2>
-    <span class="sc" style="background:#2E7D32">{len(ibaraki_all or [])}</span>
+<!-- ── ボトムナビ ── -->
+<div class="bottomnav">
+  <div class="bnav-item active" onclick="sw('tab-hita',this)">
+    {hita_bdg}
+    <div class="bnav-icon">🏛️</div>
+    <div class="bnav-label">ひたちなか</div>
   </div>
-  {ib_html(ibaraki_digest, ibaraki_all or [])}
-</div>
-</div>
-
-<!-- 茨城県政タブ -->
-<div id="pref" class="tab-content">
-<div class="wrap">
-  <div class="sbar"><input class="sinput" type="search" placeholder="🔍 このタブ内を検索..." oninput="filt(this)" aria-label="検索"></div>
-  <p class="hint">▶ をクリックして展開 ／ タイトル行をタップして AI 要約を表示</p>
-  {src_group_html(PREF_GROUPS, pref_sources, national_cards_by_source or {})}
-</div>
-</div>
-
-<!-- 国政・省庁タブ -->
-<div id="national" class="tab-content">
-<div class="wrap">
-  <div class="sbar"><input class="sinput" type="search" placeholder="🔍 このタブ内を検索..." oninput="filt(this)" aria-label="検索"></div>
-  <p class="hint">▶ をクリックして展開 ／ タイトル行をタップして AI 要約を表示</p>
-  {src_group_html(GOVT_GROUPS, govt_sources, national_cards_by_source or {})}
-</div>
-</div>
-
-<!-- 補助金・助成金タブ -->
-<div id="subsidy" class="tab-content">
-<div class="wrap">
-  <div class="sbar"><input class="sinput" type="search" placeholder="🔍 補助金名・対象を検索..." oninput="filt(this)" aria-label="検索"></div>
-  <p class="hint">中小企業庁・ミラサポplusの補助金・助成金情報 ／ タイトル行をタップして AI 要約を表示</p>
-  {src_group_html(SUBSIDY_GROUPS, subsidy_sources or [], subsidy_cards_by_source or {})}
-</div>
-</div>
-
-<!-- 国会会議録タブ -->
-<div id="kokkai" class="tab-content">
-<div class="wrap">
-  <div class="sbar"><input class="sinput" type="search" placeholder="🔍 このタブ内を検索..." oninput="filt(this)" aria-label="検索"></div>
-  <div class="sh" style="color:#0D9488">
-    <h2>📜 国会会議録（過去14日間）</h2>
-    <span class="sc" style="background:#0D9488">{cnt_kok}</span>
+  <div class="bnav-item" onclick="sw('tab-ibaraki',this)">
+    <div class="bnav-icon">🗞️</div>
+    <div class="bnav-label">茨城</div>
   </div>
-  <p class="hint">キーワード: ひたちなか / 那珂湊 / 茨城県 地方自治</p>
-  {kokkai_html()}
-</div>
+  <div class="bnav-item" onclick="sw('tab-national',this)">
+    <div class="bnav-icon">🏢</div>
+    <div class="bnav-label">国政・国会</div>
+  </div>
+  <div class="bnav-item" onclick="sw('tab-subsidy',this)">
+    {sub_bdg}
+    <div class="bnav-icon">💰</div>
+    <div class="bnav-label">補助金</div>
+  </div>
 </div>
 
-<footer>
-  <div>自動生成ダッシュボード &nbsp;|&nbsp; {date_str} JST &nbsp;|&nbsp; Powered by Gemini Flash</div>
-  <div style="margin-top:8px">
-    <a href="https://www.city.hitachinaka.lg.jp/" target="_blank">ひたちなか市</a> ·
-    <a href="https://ibarakinews.jp/" target="_blank">茨城新聞</a> ·
-    <a href="https://www.pref.ibaraki.jp/" target="_blank">茨城県</a> ·
-    <a href="https://www.kantei.go.jp/" target="_blank">首相官邸</a> ·
-    <a href="https://www.soumu.go.jp/" target="_blank">総務省</a> ·
-    <a href="https://www.chusho.meti.go.jp/" target="_blank">中小企業庁</a> ·
-    <a href="https://mirasapo-plus.go.jp/" target="_blank">ミラサポplus</a>
-  </div>
-</footer>
+<!-- ── FAB ── -->
+<div class="fab" id="fab" onclick="window.scrollTo({{top:0,behavior:'smooth'}})">↑</div>
 
 <script>
-var TABS = ['hitachinaka','ibaraki','pref','national','subsidy','kokkai'];
-
-function sw(id, btn) {{
+function sw(id,btn){{
   document.querySelectorAll('.tab-content').forEach(function(c){{c.classList.remove('active')}});
-  document.querySelectorAll('.tbtn').forEach(function(b){{b.classList.remove('active')}});
+  document.querySelectorAll('.bnav-item').forEach(function(b){{b.classList.remove('active')}});
   document.getElementById(id).classList.add('active');
   btn.classList.add('active');
-  location.hash = id;
+  window.scrollTo({{top:0,behavior:'smooth'}});
+  location.hash=id;
 }}
-
 (function(){{
-  var h = location.hash.replace('#','');
-  if(!h) return;
-  var el = document.getElementById(h);
-  if(!el) return;
+  var h=location.hash.replace('#','');
+  var ids=['tab-hita','tab-ibaraki','tab-national','tab-subsidy'];
+  var idx=ids.indexOf(h);
+  if(idx<0)return;
   document.querySelectorAll('.tab-content').forEach(function(c){{c.classList.remove('active')}});
-  document.querySelectorAll('.tbtn').forEach(function(b){{b.classList.remove('active')}});
-  el.classList.add('active');
-  var idx = TABS.indexOf(h);
-  if(idx >= 0) document.querySelectorAll('.tbtn')[idx].classList.add('active');
+  document.querySelectorAll('.bnav-item').forEach(function(b){{b.classList.remove('active')}});
+  document.getElementById(h).classList.add('active');
+  document.querySelectorAll('.bnav-item')[idx].classList.add('active');
 }})();
-
-function tgl(head) {{
-  var id = head.dataset.t;
-  var body = document.getElementById(id);
-  var isHidden = body.hidden;
-  body.hidden = !isHidden;
-  head.classList.toggle('expanded', isHidden);
-}}
-
-function filt(input) {{
-  var q = input.value.toLowerCase().trim();
-  var wrap = input.closest('.wrap');
-  wrap.querySelectorAll('.card,.lrow,.acc').forEach(function(el) {{
-    el.style.display = (!q || el.textContent.toLowerCase().includes(q)) ? '' : 'none';
-  }});
-}}
+window.addEventListener('scroll',function(){{
+  document.getElementById('fab').classList.toggle('show',window.scrollY>200);
+}});
 </script>
 </body>
 </html>"""
