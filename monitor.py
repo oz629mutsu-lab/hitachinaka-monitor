@@ -890,145 +890,157 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ひたちなか政治情報ダッシュボード | {date_str}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@700;900&display=swap" rel="stylesheet">
 <style>
 :root{{
-  --bg:#EAEAEC;--s:#FFFFFF;--s2:#F5F5F7;
-  --b:#E2E2E6;--b2:#C8C8CC;
-  --t:#111111;--t2:#444444;--m:#888888;--f:#AAAAAA;
-  --brand:#D32F2F;
-  --hbg:#1C1C1C;
-  --sh0:0 1px 3px rgba(0,0,0,.06),0 0 0 1px rgba(0,0,0,.04);
-  --sh1:0 4px 14px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.06);
-  --r:8px;--r2:5px;
+  --bg:#F6F5F0;--s:#FFFFFF;--s2:#F2F1EC;
+  --b:#E4E2DB;--b2:#C8C6BF;
+  --t:#111111;--t2:#3D3D3D;--m:#777777;--f:#AAAAAA;
+  --brand:#B71C1C;
+  --sh1:0 2px 12px rgba(0,0,0,.07);
+  --r:3px;--r2:3px;
 }}
 *{{box-sizing:border-box;margin:0;padding:0}}
-body{{font-family:-apple-system,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;background:var(--bg);color:var(--t);line-height:1.75;font-size:15px;-webkit-font-smoothing:antialiased}}
+body{{font-family:'Noto Sans JP',-apple-system,sans-serif;background:var(--bg);color:var(--t);line-height:1.75;font-size:15px;-webkit-font-smoothing:antialiased}}
 
-/* Header — SmartNews dark */
-header{{background:var(--hbg);color:#fff;border-bottom:none}}
-.hi{{max-width:1200px;margin:0 auto;padding:12px 16px 10px}}
-.hb{{display:flex;align-items:center;gap:10px;margin-bottom:5px}}
-.hl{{width:30px;height:30px;background:var(--brand);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}}
-.ht{{font-size:16px;font-weight:800;letter-spacing:-.3px;line-height:1.2}}
-.hm{{display:flex;align-items:center;gap:6px;flex-wrap:wrap}}
-.hbg{{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;font-size:11px;padding:2px 10px;color:rgba(255,255,255,.65)}}
-.hbg.live{{border-color:rgba(52,211,153,.3);color:#6EE7B7;padding-left:18px;position:relative}}
-.hbg.live::before{{content:'';position:absolute;left:8px;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:#34D399;animation:pulse 2s infinite}}
-@keyframes pulse{{0%{{box-shadow:0 0 0 0 rgba(52,211,153,.5)}}70%{{box-shadow:0 0 0 5px rgba(52,211,153,0)}}100%{{box-shadow:0 0 0 0 rgba(52,211,153,0)}}}}
+/* Header — Magazine white */
+header{{background:var(--s);border-bottom:3px solid var(--brand)}}
+.hi{{max-width:1100px;margin:0 auto;padding:14px 20px 10px}}
+.hb{{display:flex;align-items:baseline;gap:0;margin-bottom:5px}}
+.hl{{display:none}}
+.ht{{font-family:'Noto Serif JP',serif;font-size:22px;font-weight:900;color:var(--brand);letter-spacing:-.5px;line-height:1.2}}
+.hm{{display:flex;align-items:center;gap:0;flex-wrap:wrap}}
+.hbg{{background:none;border:none;border-radius:0;font-size:11px;padding:0 10px;color:var(--m)}}
+.hbg+.hbg{{border-left:1px solid var(--b2)}}
+.hbg.live{{color:var(--brand);font-weight:700;padding-left:16px;position:relative}}
+.hbg.live::before{{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:var(--brand);animation:pulse 2s infinite}}
+@keyframes pulse{{0%,100%{{opacity:1}}50%{{opacity:.3}}}}
 
-/* Tab bar — SmartNews dark */
-.tb{{background:var(--hbg);border-bottom:none;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3)}}
-.tbi{{max-width:1200px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}}
+/* Tab bar — Magazine white */
+.tb{{background:var(--s);border-bottom:1px solid var(--b);position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.06)}}
+.tbi{{max-width:1100px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}}
 .tbi::-webkit-scrollbar{{display:none}}
-.tbtn{{flex-shrink:0;padding:12px 16px 10px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:rgba(255,255,255,.5);border-bottom:3px solid transparent;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:color .15s,border-color .15s}}
-.tbtn:hover{{color:rgba(255,255,255,.85)}}
-.tbtn.active{{color:#fff;border-bottom-color:var(--brand)}}
-.tbadge{{font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;background:var(--brand);color:#fff;min-width:14px;text-align:center;line-height:1.7}}
+.tbtn{{flex-shrink:0;padding:11px 15px 9px;font-size:12.5px;font-weight:700;font-family:'Noto Sans JP',sans-serif;border:none;background:none;cursor:pointer;color:var(--m);border-bottom:3px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:color .15s,border-color .15s}}
+.tbtn:hover{{color:var(--t)}}
+.tbtn.active{{color:var(--brand);border-bottom-color:var(--brand)}}
+.tbadge{{font-size:9px;font-weight:800;padding:1px 5px;border-radius:2px;background:var(--brand);color:#fff;min-width:14px;text-align:center;line-height:1.7}}
 .tab-content{{display:none}}
 .tab-content.active{{display:block}}
 
 /* Container */
-.wrap{{max-width:1200px;margin:0 auto;padding:0 0 48px;background:var(--s)}}
+.wrap{{max-width:1100px;margin:0 auto;padding:0 0 60px;background:var(--s)}}
 
-/* Section head — left border style */
-.sh{{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg);border-left:4px solid currentColor;margin:8px 0 0}}
-.sh h2{{font-size:12px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:currentColor}}
-.sc{{font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:currentColor;color:#fff;line-height:1.6}}
+/* Section head — Magazine ruled style */
+.sh{{display:flex;align-items:baseline;gap:10px;padding:18px 20px 8px;border-bottom:2px solid currentColor;margin:0}}
+.sh h2{{font-family:'Noto Serif JP',serif;font-size:14px;font-weight:900;letter-spacing:.2px;color:currentColor}}
+.sc{{font-size:10px;font-weight:700;padding:2px 6px;border:1px solid currentColor;color:currentColor;background:none!important;line-height:1.6;border-radius:2px;margin-left:auto}}
 
-/* Card — feed style */
-.card{{background:var(--s);border-radius:0;margin-bottom:0;box-shadow:none;border:none;border-bottom:1px solid var(--b);overflow:hidden;transition:background .1s}}
+/* Card — article teaser style */
+.card{{background:var(--s);border-radius:0;margin-bottom:0;box-shadow:none;border:none;border-bottom:1px solid var(--b);overflow:hidden;transition:background .12s}}
 .card:last-child{{border-bottom:none}}
 .card:hover{{background:var(--s2)}}
-.c-in{{padding:12px 14px 10px}}
+.c-in{{padding:14px 20px 12px}}
 .c-in.ex{{cursor:pointer}}
 .c-in.ex:active{{background:var(--s2)}}
 .c-in.ex.expanded .chv{{transform:rotate(90deg);color:var(--brand)}}
-.c-ttl{{font-weight:700;font-size:14.5px;line-height:1.55;margin-bottom:8px}}
-.c-ttl a{{color:var(--t);text-decoration:none;word-break:break-all}}
+.c-ttl{{margin-bottom:10px}}
+.c-ttl a{{font-family:'Noto Serif JP',serif;font-weight:700;font-size:15.5px;line-height:1.65;color:var(--t);text-decoration:none;display:block;word-break:break-all}}
 .c-ttl a:hover{{color:var(--brand)}}
-.c-ft{{display:flex;align-items:center;gap:5px;flex-wrap:wrap}}
-.chip{{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;color:#fff;background:var(--cc,#888);letter-spacing:.1px;flex-shrink:0}}
-.ai-tag{{font-size:10px;font-weight:700;color:#7C3AED;background:#F3F0FF;padding:2px 6px;border-radius:3px;flex-shrink:0}}
-.mpill{{font-size:11px;color:var(--m);background:var(--b);padding:2px 7px;border-radius:3px;flex-shrink:0}}
+.c-ft{{display:flex;align-items:center;gap:6px;flex-wrap:wrap}}
+.chip{{font-size:10px;font-weight:700;padding:1px 7px;border-radius:2px;color:#fff;background:var(--cc,#888);letter-spacing:.2px;flex-shrink:0}}
+.ai-tag{{font-size:10px;font-weight:700;color:var(--brand);border:1px solid var(--brand);padding:1px 6px;border-radius:2px;flex-shrink:0}}
+.mpill{{font-size:11px;color:var(--m);border:1px solid var(--b2);padding:1px 6px;border-radius:2px;flex-shrink:0}}
 .c-acts{{display:flex;align-items:center;gap:5px;margin-left:auto;flex-shrink:0}}
-.exp-btn{{display:flex;align-items:center;gap:2px;font-size:10px;font-weight:700;color:var(--m);padding:2px 7px;border-radius:3px;border:1px solid var(--b);background:none;white-space:nowrap;transition:background .1s}}
+.exp-btn{{display:flex;align-items:center;gap:2px;font-size:10px;font-weight:700;color:var(--m);padding:2px 7px;border-radius:2px;border:1px solid var(--b);background:none;white-space:nowrap;transition:background .1s;font-family:'Noto Sans JP',sans-serif}}
 .exp-btn:hover{{background:var(--b)}}
 .chv{{font-size:14px;color:var(--f);transition:transform .2s,color .2s;line-height:1;user-select:none}}
-.out-btn{{font-size:11px;color:var(--m);text-decoration:none;padding:2px 7px;border-radius:3px;border:1px solid var(--b);background:none;transition:background .1s;white-space:nowrap}}
+.out-btn{{font-size:11px;color:var(--m);text-decoration:none;padding:2px 7px;border-radius:2px;border:1px solid var(--b);background:none;transition:background .1s;white-space:nowrap}}
 .out-btn:hover{{background:var(--b)}}
-.c-body{{padding:10px 14px 14px;border-top:1px solid var(--b);font-size:13.5px;line-height:1.8;background:var(--s2);animation:fadein .2s ease}}
-.c-body p{{margin:5px 0 4px;color:var(--t2)}}
-.c-body ul{{padding-left:1.4em;margin:5px 0}}
-.c-body li{{margin-bottom:4px;color:var(--t2)}}
-.excerpt{{color:var(--t2);font-style:italic;border-left:3px solid var(--b2);padding-left:10px;margin:5px 0;font-size:13px}}
+.c-body{{padding:12px 20px 16px;border-top:1px solid var(--b);font-size:13.5px;line-height:1.85;background:var(--s2);animation:fadein .2s ease}}
+.c-body p{{margin:6px 0 4px;color:var(--t2)}}
+.c-body ul{{padding-left:1.5em;margin:6px 0}}
+.c-body li{{margin-bottom:5px;color:var(--t2)}}
+.excerpt{{color:var(--t2);font-style:italic;border-left:3px solid var(--b2);padding-left:12px;margin:6px 0;font-size:13px}}
 @keyframes fadein{{from{{opacity:0;transform:translateY(-4px)}}to{{opacity:1;transform:translateY(0)}}}}
 
-/* Card grid — PC 2-column */
+/* Card grid — PC 2-col with ruled separator */
 .card-grid{{}}
 @media(min-width:768px){{
-  .wrap{{padding:0 16px 48px}}
-  .sh{{margin:12px 0 0}}
-  .card-grid{{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:8px 0}}
-  .card-grid .card{{border-radius:var(--r);border:1px solid var(--b);border-top:3px solid var(--ac,#CBD5E1);box-shadow:var(--sh0);margin-bottom:0}}
-  .card-grid .card:last-child{{border-bottom:1px solid var(--b)}}
-  .card-grid .card:hover{{box-shadow:var(--sh1);transform:translateY(-1px);background:var(--s)}}
+  .wrap{{padding:0 20px 60px}}
+  .sh{{padding:20px 0 8px;margin:16px 0 0}}
+  .sbar{{padding:10px 0 8px}}
+  .hint{{padding:4px 0}}
+  .card-grid{{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--b);border-bottom:1px solid var(--b)}}
+  .card-grid .card{{background:var(--s);border:none;border-radius:0;box-shadow:none;margin-bottom:0}}
+  .card-grid .card:last-child{{border-bottom:none}}
+  .card-grid .card:hover{{background:var(--s2)}}
+  .lrow,.acc-hd{{padding-left:0;padding-right:0}}
+  .src-lbl{{padding-left:0}}
+  .c-in{{padding-left:16px;padding-right:16px}}
+  .c-body{{padding-left:16px;padding-right:16px}}
 }}
 @media(min-width:1024px){{
-  .card-grid{{gap:12px}}
+  .wrap{{padding:0 24px 60px}}
 }}
 
 /* List box */
 .lbox{{background:var(--s);overflow:hidden}}
-.lrow{{padding:10px 14px;border-bottom:1px solid var(--b);font-size:13px;display:flex;flex-direction:column;gap:3px;transition:background .1s}}
+.lrow{{padding:11px 20px;border-bottom:1px solid var(--b);font-size:13px;display:flex;flex-direction:column;gap:3px;transition:background .12s}}
 .lrow:last-child{{border-bottom:none}}
 .lrow:hover{{background:var(--s2)}}
-.lrow a{{color:var(--t);text-decoration:none;font-weight:600;line-height:1.5}}
+.lrow a{{font-family:'Noto Serif JP',serif;color:var(--t);text-decoration:none;font-weight:700;line-height:1.55}}
 .lrow a:hover{{color:var(--brand)}}
 .ldesc{{font-size:11px;color:var(--f)}}
 
 /* Digest */
-.digest{{background:linear-gradient(135deg,#F0FDF4,#ECFDF5);border-left:4px solid #22C55E;padding:12px 16px;font-size:13.5px;line-height:1.78}}
+.digest{{background:#FDFBF5;border-left:4px solid #2E7D32;padding:14px 20px;font-size:13.5px;line-height:1.85}}
 .digest p{{margin-bottom:6px;color:var(--t2)}}
-.digest ul{{padding-left:1.4em}}
+.digest ul{{padding-left:1.5em}}
 .digest li{{margin-bottom:4px;color:var(--t2)}}
 
-/* Accordion */
+/* Accordion — Magazine ruled */
 .acc{{background:var(--s);border-radius:0;margin-bottom:0;border:none;border-bottom:1px solid var(--b);overflow:hidden}}
 .acc:last-child{{border-bottom:none}}
-.acc-hd{{list-style:none;padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;user-select:none;font-weight:700;font-size:14px;transition:background .12s;border-left:4px solid var(--ac,var(--brand))}}
+.acc-hd{{list-style:none;padding:13px 20px;cursor:pointer;display:flex;align-items:center;gap:10px;user-select:none;font-weight:700;font-size:14px;transition:background .12s;border-left:4px solid var(--ac,var(--brand));font-family:'Noto Sans JP',sans-serif}}
 .acc-hd::-webkit-details-marker{{display:none}}
 .acc-hd:hover{{background:var(--s2)}}
 .acc-lbl{{flex:1;color:var(--t)}}
-.acc-cnt{{font-size:10px;font-weight:800;color:var(--m);background:var(--b);padding:2px 8px;border-radius:4px}}
+.acc-cnt{{font-size:10px;font-weight:700;color:var(--m);border:1px solid var(--b2);padding:1px 7px;border-radius:2px}}
 .acc-chv{{color:var(--f);font-size:15px;transition:transform .2s;line-height:1;flex-shrink:0}}
 details[open] .acc-chv{{transform:rotate(90deg)}}
 details[open] .acc-bd{{animation:fadein .2s ease}}
 .acc-bd{{padding:0}}
 .src-blk{{border-top:1px solid var(--b)}}
-.src-lbl{{font-size:10px;font-weight:800;color:var(--m);letter-spacing:.8px;text-transform:uppercase;padding:6px 14px 4px;background:var(--bg)}}
-@media(min-width:768px){{
-  .acc{{border-radius:var(--r);border:1px solid var(--b);margin-bottom:8px}}
-  .acc:last-child{{border-bottom:1px solid var(--b)}}
-}}
+.src-lbl{{font-size:10px;font-weight:800;color:var(--m);letter-spacing:1px;text-transform:uppercase;padding:6px 20px 4px;background:var(--bg);font-family:'Noto Sans JP',sans-serif}}
 
 /* Search */
-.sbar{{padding:8px 14px 6px;background:var(--s);border-bottom:1px solid var(--b)}}
-.sinput{{width:100%;padding:8px 12px;border:1px solid var(--b);border-radius:var(--r2);font-size:13px;background:var(--s2);color:var(--t);transition:border-color .15s,box-shadow .15s}}
-.sinput:focus{{outline:none;border-color:var(--brand);box-shadow:0 0 0 2px rgba(211,47,47,.12)}}
-.hint{{font-size:11.5px;color:var(--f);padding:5px 14px;background:var(--s);border-bottom:1px solid var(--b)}}
-.empty{{color:var(--m);font-size:13px;padding:24px 0;text-align:center}}
+.sbar{{padding:10px 20px 8px;background:var(--s);border-bottom:1px solid var(--b)}}
+.sinput{{width:100%;padding:8px 12px;border:1px solid var(--b);border-radius:var(--r2);font-size:13px;background:var(--bg);color:var(--t);font-family:'Noto Sans JP',sans-serif;transition:border-color .15s}}
+.sinput:focus{{outline:none;border-color:var(--brand);box-shadow:0 0 0 2px rgba(183,28,28,.1)}}
+.hint{{font-size:11.5px;color:var(--f);padding:5px 20px;background:var(--s);border-bottom:1px solid var(--b)}}
+.empty{{color:var(--m);font-size:13px;padding:36px 0;text-align:center}}
 
 /* Footer */
-footer{{background:var(--hbg);color:rgba(255,255,255,.35);font-size:11px;padding:20px 18px;text-align:center;line-height:2.4}}
+footer{{background:var(--t);color:rgba(255,255,255,.35);font-size:11px;padding:22px 20px;text-align:center;line-height:2.4}}
 footer a{{color:rgba(255,255,255,.5);text-decoration:none}}
 footer a:hover{{color:#fff}}
 
 /* Mobile */
 @media(max-width:600px){{
-  .ht{{font-size:14px}}
+  .ht{{font-size:18px}}
+  .c-in{{padding-left:14px;padding-right:14px}}
+  .c-body{{padding-left:14px;padding-right:14px}}
+  .sh{{padding:14px 14px 8px}}
+  .sbar{{padding:8px 14px 6px}}
+  .hint{{padding:5px 14px}}
+  .lrow{{padding-left:14px;padding-right:14px}}
+  .acc-hd{{padding-left:14px;padding-right:14px}}
+  .src-lbl{{padding-left:14px}}
   .c-ft{{flex-wrap:wrap}}
   .c-acts{{margin-left:0}}
-  .tbtn{{padding:11px 12px;font-size:12px}}
+  .tbtn{{padding:10px 12px;font-size:12px}}
 }}
 
 /* Print */
@@ -1044,26 +1056,23 @@ footer a:hover{{color:#fff}}
 
 <header>
 <div class="hi">
-  <div class="hb">
-    <div class="hl">🗾</div>
-    <h1 class="ht">ひたちなか政治情報ダッシュボード</h1>
-  </div>
+  <h1 class="ht">ひたちなか市 政治情報</h1>
   <div class="hm">
     <span class="hbg live">LIVE</span>
-    <span class="hbg">更新: {date_str} JST</span>
-    <span class="hbg">AI: Gemini Flash 自動要約</span>
+    <span class="hbg">{date_str} JST</span>
+    <span class="hbg">Gemini Flash 自動要約</span>
   </div>
 </div>
 </header>
 
 <div class="tb">
 <div class="tbi">
-  <button class="tbtn active" data-tc="#1565C0" onclick="sw('hitachinaka',this)">🏛️ ひたちなか市{badge(cnt_hita,"#1565C0")}</button>
-  <button class="tbtn" data-tc="#2E7D32" onclick="sw('ibaraki',this)">🗞️ 茨城新聞{badge(cnt_ib,"#2E7D32")}</button>
-  <button class="tbtn" data-tc="#1B5E20" onclick="sw('pref',this)">🌿 茨城県政{badge(cnt_pref,"#1B5E20")}</button>
-  <button class="tbtn" data-tc="#4527A0" onclick="sw('national',this)">🏢 国政・省庁{badge(cnt_nat,"#4527A0")}</button>
-  <button class="tbtn" data-tc="#5D4037" onclick="sw('subsidy',this)">💰 補助金{badge(cnt_sub,"#5D4037")}</button>
-  <button class="tbtn" data-tc="#0D9488" onclick="sw('kokkai',this)">📜 国会{badge(cnt_kok,"#0D9488")}</button>
+  <button class="tbtn active" onclick="sw('hitachinaka',this)">🏛️ ひたちなか市{badge(cnt_hita,"#B71C1C")}</button>
+  <button class="tbtn" onclick="sw('ibaraki',this)">🗞️ 茨城新聞{badge(cnt_ib,"#B71C1C")}</button>
+  <button class="tbtn" onclick="sw('pref',this)">🌿 茨城県政{badge(cnt_pref,"#B71C1C")}</button>
+  <button class="tbtn" onclick="sw('national',this)">🏢 国政・省庁{badge(cnt_nat,"#B71C1C")}</button>
+  <button class="tbtn" onclick="sw('subsidy',this)">💰 補助金{badge(cnt_sub,"#B71C1C")}</button>
+  <button class="tbtn" onclick="sw('kokkai',this)">📜 国会{badge(cnt_kok,"#B71C1C")}</button>
 </div>
 </div>
 
