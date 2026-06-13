@@ -3,660 +3,223 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ひたちなか政治情報ダッシュボード | 2026年06月13日 17:39</title>
+<title>ひたちなか政治情報 | 6月14日（Sun）</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#F6F5F0;--s:#FFFFFF;--s2:#F2F1EC;
-  --b:#E4E2DB;--b2:#C8C6BF;
-  --t:#111111;--t2:#3D3D3D;--m:#777777;--f:#AAAAAA;
-  --brand:#B71C1C;
-  --sh1:0 2px 12px rgba(0,0,0,.07);
-  --r:3px;--r2:3px;
-}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Noto Sans JP',-apple-system,sans-serif;background:var(--bg);color:var(--t);line-height:1.75;font-size:15px;-webkit-font-smoothing:antialiased}
+:root{
+  --bg:#F2F2F7;--sheet:#FFF;
+  --t:#000;--t2:#1C1C1E;--m:#3C3C43;--sub:#8E8E93;
+  --b:#E5E5EA;--b2:rgba(0,0,0,.1);
+  --brand:#1D4ED8;--brand-lt:#EFF6FF;--brand-md:#DBEAFE;
+  --red:#DC2626;--red-lt:#FEE2E2;
+}
+body{font-family:'Noto Sans JP',-apple-system,sans-serif;background:var(--bg);
+  color:var(--t);-webkit-font-smoothing:antialiased;max-width:768px;margin:0 auto;min-height:100vh}
 
-/* Header — Magazine white */
-header{background:var(--s);border-bottom:3px solid var(--brand)}
-.hi{max-width:1100px;margin:0 auto;padding:14px 20px 10px}
-.hb{display:flex;align-items:baseline;gap:0;margin-bottom:5px}
-.hl{display:none}
-.ht{font-family:'Noto Serif JP',serif;font-size:22px;font-weight:900;color:var(--brand);letter-spacing:-.5px;line-height:1.2}
-.hm{display:flex;align-items:center;gap:0;flex-wrap:wrap}
-.hbg{background:none;border:none;border-radius:0;font-size:11px;padding:0 10px;color:var(--m)}
-.hbg+.hbg{border-left:1px solid var(--b2)}
-.hbg.live{color:var(--brand);font-weight:700;padding-left:16px;position:relative}
-.hbg.live::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:var(--brand);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* ── ヘッダー ── */
+.hd{height:52px;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);border-bottom:.5px solid var(--b2);
+  padding:0 16px;display:flex;justify-content:space-between;align-items:center;
+  position:sticky;top:0;z-index:30}
+.hd-date{font-size:15px;font-weight:700;color:var(--t2)}
+.hd-right{display:flex;gap:6px}
+.chip{font-size:13px;font-weight:700;padding:4px 10px;border-radius:99px;
+  text-decoration:none;display:inline-block}
+.chip.alert{background:var(--red-lt);color:var(--red)}
+.chip.gray{background:var(--b);color:var(--m)}
 
-/* Tab bar — Magazine white */
-.tb{background:var(--s);border-bottom:1px solid var(--b);position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.tbi{max-width:1100px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.tbi::-webkit-scrollbar{display:none}
-.tbtn{flex-shrink:0;padding:11px 15px 9px;font-size:12.5px;font-weight:700;font-family:'Noto Sans JP',sans-serif;border:none;background:none;cursor:pointer;color:var(--m);border-bottom:3px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:color .15s,border-color .15s}
-.tbtn:hover{color:var(--t)}
-.tbtn.active{color:var(--brand);border-bottom-color:var(--brand)}
-.tbadge{font-size:9px;font-weight:800;padding:1px 5px;border-radius:2px;background:var(--brand);color:#fff;min-width:14px;text-align:center;line-height:1.7}
-.tab-content{display:none}
+/* ── タブ ── */
+.tab-content{display:none;padding-bottom:88px}
 .tab-content.active{display:block}
 
-/* Container */
-.wrap{max-width:1100px;margin:0 auto;padding:0 0 60px;background:var(--s)}
+/* ── ページシート（タブ内コンテンツを1枚に） ── */
+.page-sheet{background:var(--sheet);border-top:.5px solid var(--b2);border-bottom:.5px solid var(--b2);margin-top:20px}
 
-/* Section head — Magazine ruled style */
-.sh{display:flex;align-items:baseline;gap:10px;padding:18px 20px 8px;border-bottom:2px solid currentColor;margin:0}
-.sh h2{font-family:'Noto Serif JP',serif;font-size:14px;font-weight:900;letter-spacing:.2px;color:currentColor}
-.sc{font-size:10px;font-weight:700;padding:2px 6px;border:1px solid currentColor;color:currentColor;background:none!important;line-height:1.6;border-radius:2px;margin-left:auto}
+/* ── TOP STORY ── */
+.top-story{margin:16px 16px 0;border-radius:14px;padding:16px 16px 14px;overflow:hidden}
+.ts-eyebrow{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  display:flex;align-items:center;gap:5px;margin-bottom:9px}
+.ts-eyebrow .bar{display:inline-block;width:14px;height:2px;border-radius:2px;background:currentColor}
+.ts-title{font-size:20px;font-weight:800;line-height:1.45;letter-spacing:-.01em;
+  color:var(--t);margin-bottom:9px}
+.ts-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  font-size:13px;color:var(--sub);margin-bottom:11px}
+.ts-badge{font-size:12px;font-weight:700;padding:2px 8px;border-radius:5px;display:inline-block}
+.ts-badge.red{background:var(--red-lt);color:var(--red)}
+.ts-badge.blue{background:var(--brand-lt);color:var(--brand)}
+.ts-summary{font-size:14px;line-height:1.7;color:var(--m);
+  border-left:2px solid rgba(0,0,0,.15);padding-left:11px;margin-bottom:12px}
+.ts-summary p{margin:4px 0;color:var(--m)}
+.ts-summary ul{padding-left:1.4em;margin:4px 0}
+.ts-summary li{margin-bottom:3px;color:var(--m)}
+.ts-link{font-size:14px;font-weight:700;text-decoration:none;
+  display:flex;justify-content:flex-end;align-items:center;gap:2px}
 
-/* Card — article teaser style */
-.card{background:var(--s);border-radius:0;margin-bottom:0;box-shadow:none;border:none;border-bottom:1px solid var(--b);overflow:hidden;transition:background .12s}
-.card:last-child{border-bottom:none}
-.card:hover{background:var(--s2)}
-.c-in{padding:14px 20px 12px}
-.c-in.ex{cursor:pointer}
-.c-in.ex:active{background:var(--s2)}
-.c-in.ex.expanded .chv{transform:rotate(90deg);color:var(--brand)}
-.c-ttl{margin-bottom:10px}
-.c-ttl a{font-family:'Noto Serif JP',serif;font-weight:700;font-size:15.5px;line-height:1.65;color:var(--t);text-decoration:none;display:block;word-break:break-all}
-.c-ttl a:hover{color:var(--brand)}
-.c-ft{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.chip{font-size:10px;font-weight:700;padding:1px 7px;border-radius:2px;color:#fff;background:var(--cc,#888);letter-spacing:.2px;flex-shrink:0}
-.ai-tag{font-size:10px;font-weight:700;color:var(--brand);border:1px solid var(--brand);padding:1px 6px;border-radius:2px;flex-shrink:0}
-.mpill{font-size:11px;color:var(--m);border:1px solid var(--b2);padding:1px 6px;border-radius:2px;flex-shrink:0}
-.c-acts{display:flex;align-items:center;gap:5px;margin-left:auto;flex-shrink:0}
-.exp-btn{display:flex;align-items:center;gap:2px;font-size:10px;font-weight:700;color:var(--m);padding:2px 7px;border-radius:2px;border:1px solid var(--b);background:none;white-space:nowrap;transition:background .1s;font-family:'Noto Sans JP',sans-serif}
-.exp-btn:hover{background:var(--b)}
-.chv{font-size:14px;color:var(--f);transition:transform .2s,color .2s;line-height:1;user-select:none}
-.out-btn{font-size:11px;color:var(--m);text-decoration:none;padding:2px 7px;border-radius:2px;border:1px solid var(--b);background:none;transition:background .1s;white-space:nowrap}
-.out-btn:hover{background:var(--b)}
-.c-body{padding:12px 20px 16px;border-top:1px solid var(--b);font-size:13.5px;line-height:1.85;background:var(--s2);animation:fadein .2s ease}
-.c-body p{margin:6px 0 4px;color:var(--t2)}
-.c-body ul{padding-left:1.5em;margin:6px 0}
-.c-body li{margin-bottom:5px;color:var(--t2)}
-.excerpt{color:var(--t2);font-style:italic;border-left:3px solid var(--b2);padding-left:12px;margin:6px 0;font-size:13px}
-@keyframes fadein{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+/* ── セクション区切り ── */
+.sec-divider{display:flex;align-items:center;gap:10px;padding:20px 16px 8px}
+.sec-divider-label{font-size:12px;font-weight:700;letter-spacing:.06em;
+  color:var(--sub);white-space:nowrap}
+.sec-divider::after{content:'';flex:1;height:.5px;background:var(--b)}
 
-/* Card grid — PC 2-col with ruled separator */
-.card-grid{}
-@media(min-width:768px){
-  .wrap{padding:0 20px 60px}
-  .sh{padding:20px 0 8px;margin:16px 0 0}
-  .sbar{padding:10px 0 8px}
-  .hint{padding:4px 0}
-  .card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--b);border-bottom:1px solid var(--b)}
-  .card-grid .card{background:var(--s);border:none;border-radius:0;box-shadow:none;margin-bottom:0}
-  .card-grid .card:last-child{border-bottom:none}
-  .card-grid .card:hover{background:var(--s2)}
-  .lrow,.acc-hd{padding-left:0;padding-right:0}
-  .src-lbl{padding-left:0}
-  .c-in{padding-left:16px;padding-right:16px}
-  .c-body{padding-left:16px;padding-right:16px}
-}
-@media(min-width:1024px){
-  .wrap{padding:0 24px 60px}
-}
+/* ── 記事行 ── */
+.article{display:flex;gap:12px;padding:13px 16px;min-height:48px;
+  align-items:flex-start;text-decoration:none;
+  border-top:.5px solid var(--b);
+  transition:background .12s ease,transform .08s ease}
+.article:active{background:#F2F2F7;transform:scale(.99)}
+.art-body{flex:1;min-width:0}
+.art-title{font-size:16px;font-weight:600;line-height:1.55;color:var(--t2);
+  margin-bottom:5px;display:block;word-break:break-all}
+.art-meta{font-size:13px;color:var(--sub);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.art-label{font-size:12px;font-weight:700;padding:2px 8px;border-radius:5px;
+  display:inline-block;margin-right:4px}
+.art-label.urgent{background:var(--red-lt);color:var(--red)}
+.art-badge{font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;display:inline-block}
+.art-badge.red{background:var(--red-lt);color:var(--red)}
+.art-badge.blue{background:var(--brand-lt);color:var(--brand)}
+.art-chevron{color:#C7C7CC;font-size:18px;flex-shrink:0;align-self:center;font-weight:300}
 
-/* List box */
-.lbox{background:var(--s);overflow:hidden}
-.lrow{padding:11px 20px;border-bottom:1px solid var(--b);font-size:13px;display:flex;flex-direction:column;gap:3px;transition:background .12s}
-.lrow:last-child{border-bottom:none}
-.lrow:hover{background:var(--s2)}
-.lrow a{font-family:'Noto Serif JP',serif;color:var(--t);text-decoration:none;font-weight:700;line-height:1.55}
-.lrow a:hover{color:var(--brand)}
-.ldesc{font-size:11px;color:var(--f)}
+/* ── 空メッセージ ── */
+.empty-msg{color:var(--sub);font-size:14px;text-align:center;padding:36px 16px}
 
-/* Digest */
-.digest{background:#FDFBF5;border-left:4px solid #2E7D32;padding:14px 20px;font-size:13.5px;line-height:1.85}
-.digest p{margin-bottom:6px;color:var(--t2)}
-.digest ul{padding-left:1.5em}
-.digest li{margin-bottom:4px;color:var(--t2)}
+/* ── ボトムナビ ── */
+.bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:768px;
+  background:rgba(255,255,255,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-top:.5px solid var(--b2);display:flex;z-index:20;
+  padding-bottom:env(safe-area-inset-bottom)}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;
+  padding:10px 4px 12px;gap:3px;cursor:pointer;position:relative;
+  -webkit-tap-highlight-color:transparent}
+.bnav-icon{font-size:22px;line-height:1}
+.bnav-label{font-size:10px;font-weight:500;color:var(--sub)}
+.bnav-item.active .bnav-label{color:var(--brand);font-weight:700}
+.bnav-item.active .bnav-icon::after{content:'';position:absolute;bottom:-4px;left:50%;
+  transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--brand)}
+.bnav-badge{position:absolute;top:5px;right:calc(50% - 22px);
+  background:var(--red);color:#fff;font-size:10px;font-weight:700;
+  min-width:17px;height:17px;border-radius:99px;
+  display:flex;align-items:center;justify-content:center;padding:0 4px}
 
-/* Accordion — Magazine ruled */
-.acc{background:var(--s);border-radius:0;margin-bottom:0;border:none;border-bottom:1px solid var(--b);overflow:hidden}
-.acc:last-child{border-bottom:none}
-.acc-hd{list-style:none;padding:13px 20px;cursor:pointer;display:flex;align-items:center;gap:10px;user-select:none;font-weight:700;font-size:14px;transition:background .12s;border-left:4px solid var(--ac,var(--brand));font-family:'Noto Sans JP',sans-serif}
-.acc-hd::-webkit-details-marker{display:none}
-.acc-hd:hover{background:var(--s2)}
-.acc-lbl{flex:1;color:var(--t)}
-.acc-cnt{font-size:10px;font-weight:700;color:var(--m);border:1px solid var(--b2);padding:1px 7px;border-radius:2px}
-.acc-chv{color:var(--f);font-size:15px;transition:transform .2s;line-height:1;flex-shrink:0}
-details[open] .acc-chv{transform:rotate(90deg)}
-details[open] .acc-bd{animation:fadein .2s ease}
-.acc-bd{padding:0}
-.src-blk{border-top:1px solid var(--b)}
-.src-lbl{font-size:10px;font-weight:800;color:var(--m);letter-spacing:1px;text-transform:uppercase;padding:6px 20px 4px;background:var(--bg);font-family:'Noto Sans JP',sans-serif}
+/* ── FAB ── */
+.fab{position:fixed;bottom:84px;right:16px;z-index:19;
+  width:40px;height:40px;border-radius:50%;
+  background:rgba(255,255,255,.9);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:.5px solid var(--b);box-shadow:0 2px 10px rgba(0,0,0,.12);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;cursor:pointer;color:var(--m);
+  opacity:0;pointer-events:none;transition:opacity .2s ease;
+  -webkit-tap-highlight-color:transparent}
+.fab.show{opacity:1;pointer-events:auto}
 
-/* Search */
-.sbar{padding:10px 20px 8px;background:var(--s);border-bottom:1px solid var(--b)}
-.sinput{width:100%;padding:8px 12px;border:1px solid var(--b);border-radius:var(--r2);font-size:13px;background:var(--bg);color:var(--t);font-family:'Noto Sans JP',sans-serif;transition:border-color .15s}
-.sinput:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 2px rgba(183,28,28,.1)}
-.hint{font-size:11.5px;color:var(--f);padding:5px 20px;background:var(--s);border-bottom:1px solid var(--b)}
-.empty{color:var(--m);font-size:13px;padding:36px 0;text-align:center}
-
-/* Footer */
-footer{background:var(--t);color:rgba(255,255,255,.35);font-size:11px;padding:22px 20px;text-align:center;line-height:2.4}
-footer a{color:rgba(255,255,255,.5);text-decoration:none}
-footer a:hover{color:#fff}
-
-/* Mobile */
-@media(max-width:600px){
-  .ht{font-size:18px}
-  .c-in{padding-left:14px;padding-right:14px}
-  .c-body{padding-left:14px;padding-right:14px}
-  .sh{padding:14px 14px 8px}
-  .sbar{padding:8px 14px 6px}
-  .hint{padding:5px 14px}
-  .lrow{padding-left:14px;padding-right:14px}
-  .acc-hd{padding-left:14px;padding-right:14px}
-  .src-lbl{padding-left:14px}
-  .c-ft{flex-wrap:wrap}
-  .c-acts{margin-left:0}
-  .tbtn{padding:10px 12px;font-size:12px}
+/* PC: 最大幅制限でもきれいに */
+@media(min-width:600px){
+  .top-story{margin:20px 20px 0}
+  .sec-divider{padding:20px 20px 8px}
+  .article{padding:14px 20px}
 }
 
 /* Print */
 @media print{
-  .tb,.c-acts,.sbar,.hint{display:none!important}
+  .hd,.bottomnav,.fab{display:none!important}
   .tab-content{display:block!important}
-  .c-body{display:block!important}
-  body{font-size:12px}
+  body{max-width:none}
 }
 </style>
 </head>
 <body>
 
-<header>
-<div class="hi">
-  <h1 class="ht">ひたちなか市 政治情報</h1>
-  <div class="hm">
-    <span class="hbg live">LIVE</span>
-    <span class="hbg">2026年06月13日 17:39 JST</span>
-    <span class="hbg">Gemini Flash 自動要約</span>
+<!-- ヘッダー -->
+<div class="hd">
+  <div class="hd-date">6月14日（Sun）</div>
+  <div class="hd-right">
+    <a class="chip alert" href="#tab-hita">📭 新着なし</a>
+    <span class="chip gray">新着 72</span>
   </div>
-</div>
-</header>
-
-<div class="tb">
-<div class="tbi">
-  <button class="tbtn active" onclick="sw('hitachinaka',this)">🏛️ ひたちなか市</button>
-  <button class="tbtn" onclick="sw('ibaraki',this)">🗞️ 茨城新聞<span class="tbadge" style="background:#B71C1C">7</span></button>
-  <button class="tbtn" onclick="sw('pref',this)">🌿 茨城県政<span class="tbadge" style="background:#B71C1C">20</span></button>
-  <button class="tbtn" onclick="sw('national',this)">🏢 国政・省庁<span class="tbadge" style="background:#B71C1C">55</span></button>
-  <button class="tbtn" onclick="sw('subsidy',this)">💰 補助金<span class="tbadge" style="background:#B71C1C">16</span></button>
-  <button class="tbtn" onclick="sw('kokkai',this)">📜 国会</button>
-</div>
 </div>
 
-<!-- ひたちなか市タブ -->
-<div id="hitachinaka" class="tab-content active">
-<div class="wrap">
-  <div class="sbar"><input class="sinput" type="search" placeholder="🔍 このタブ内を検索..." oninput="filt(this)" aria-label="検索"></div>
-
-  <div class="sh" style="color:#C62828">
-    <h2>🔴 議会情報</h2>
-    <span class="sc" style="background:#C62828">0</span>
+<!-- ── ひたちなか市 ── -->
+<div class="tab-content active" id="tab-hita">
+  <div class="page-sheet" id="tab-hita-sheet">
+<div class="empty-msg">本日のひたちなか市情報はありません</div>
   </div>
-  <p class="empty">本日の議会はありません</p>
-
-  <div class="sh" style="color:#E65100">
-    <h2>🟡 重要なお知らせ</h2>
-    <span class="sc" style="background:#E65100">0</span>
-  </div>
-  <p class="empty">本日の重要はありません</p>
-
-  <div class="sh" style="color:#546E7A">
-    <h2>📋 その他（24時間以内）</h2>
-    <span class="sc" style="background:#546E7A">0</span>
-  </div>
-  <p class="empty">本日の更新情報はありません</p>
-</div>
 </div>
 
-<!-- 茨城新聞タブ -->
-<div id="ibaraki" class="tab-content">
-<div class="wrap">
-  <div class="sbar"><input class="sinput" type="search" placeholder="🔍 このタブ内を検索..." oninput="filt(this)" aria-label="検索"></div>
-
-  <div class="sh" style="color:#1B5E20">
-    <h2>📍 ひたちなか・那珂湊 関連</h2>
-    <span class="sc" style="background:#1B5E20">0</span>
-  </div>
-  <p class="empty">本日のひたちなか関連記事はありません</p>
-
-  <div class="sh" style="color:#2E7D32">
-    <h2>📰 本日の茨城ニュース</h2>
-    <span class="sc" style="background:#2E7D32">7</span>
-  </div>
-  <div class="digest"><p>茨城新聞のニュースを地方議員候補者の視点でまとめます。</p>
+<!-- ── 茨城 ── -->
+<div class="tab-content" id="tab-ibaraki">
+  <div class="page-sheet">
+<div class="top-story" style="background:linear-gradient(135deg,#F5F3FF 0%,#EDE9FE 100%);border-left:4px solid #6D28D9;box-shadow:0 2px 10px rgba(109,40,217,.10);"><div class="ts-eyebrow" style="color:#6D28D9"><span class="bar" style="background:#6D28D9"></span>茨城新聞・今日の注目</div><div class="ts-title">海岸マルシェにぎわう　ボート体験も　ひたちなか・阿字ケ浦　茨城</div><div class="ts-meta"><span>🗞️ 茨城新聞</span></div><div class="ts-summary"><p>茨城県ひたちなか市の阿字ケ浦海岸で開催された複合イベント「イバフォルニアマーケット」に関する記事</p>
 <ul>
-<li>水戸市で54歳の男が父親を殺害した容疑で逮捕</li>
-</ul></div><div class="lbox"><div class="lrow"><a href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1781307886132500" target="_blank" rel="noopener">【更新】父親の首絞め殺害　容疑で54歳男逮捕　自ら110番通報　茨城県警水戸署</a></div><div class="lrow"><a href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1781272055762000" target="_blank" rel="noopener">茨城・石岡市長選、14日告示　前新3氏か　市政正常化が争点</a></div><div class="lrow"><a href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1781271712124500" target="_blank" rel="noopener">トップ不在、市政漂流　茨城・石岡市長選、14日告示　一般質問なく静かな議場</a></div><div class="lrow"><a href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1781269731613800" target="_blank" rel="noopener">JR水戸とJ1水戸　パートナー契約締結　地域の魅力発信へ　茨城</a></div><div class="lrow"><a href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1781270892921000" target="_blank" rel="noopener">茨城県、LPガス料金補助へ　7～9月　補正予算案8億3300万円　価格高騰の負担軽減</a></div><div class="lrow"><a href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1781269873520100" target="_blank" rel="noopener">【独自】茨城県西部メディカルセンターで不正会計　病院職員が着服か、懲戒解雇　筑西市長、全協で説明</a></div><div class="lrow"><a href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1781177386181600" target="_blank" rel="noopener">伝統工芸の〝現在〟一望　漆や提灯、桂雛も　茨城・筑西で「匠の神技展」　16日まで</a></div></div>
-</div>
+<li>イベント名称と開催場所・日時</li>
+</ul>
+<p>イベントは「イバフォルニアマーケット」と</p></div><a class="ts-link" href="https://ibarakinews.jp/news/newsdetail.php?f_jun=1781356190585900" target="_blank" rel="noopener" style="color:#6D28D9">詳細を読む ›</a></div><div class="sec-divider"><span class="sec-divider-label">📌 茨城県 注目情報</span></div><a class="article" href="https://www.pref.ibaraki.jp/bugai/koho/kocho/data/sodan/kensei.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">通報報奨金制度について</div><div class="art-meta"><span>📌 茨城県 注目情報</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.pref.ibaraki.jp/hokenfukushi/iryo/iryo/isei/sentei_ryoyohi.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">救急搬送における選定療養費の徴収開始について</div><div class="art-meta"><span>📌 茨城県 注目情報</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.pref.ibaraki.jp/kikaku/kikaku/seisaku/kikaku1-sogo/index.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">茨城県の取組「ここがすごい！」（第２次茨城県総合計画～主要指標等実績一覧～）</div><div class="art-meta"><span>📌 茨城県 注目情報</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.pref.ibaraki.jp/somu/zeimu/kikaku/tax-forforeigners.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">新型コロナウィルス感染症の影響に対する県税の取扱いについて</div><div class="art-meta"><span>📌 茨城県 注目情報</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.pref.ibaraki.jp/kikaku/seisaku/tyosei/kikaku.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">中東情勢に関する対応について</div><div class="art-meta"><span>📌 茨城県 注目情報</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.pref.ibaraki.jp/koho/eizo-onsei/challenge_iba/index.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">【CHALLENGE IBARAKI】#79  いばらきデザインセレクション</div><div class="art-meta"><span>📌 茨城県 注目情報</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.pref.ibaraki.jp/hokenfukushi/fukushi/jinken/danjo-jichitairenkei.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">いばらきパートナーシップ宣誓制度を実施しています</div><div class="art-meta"><span>📌 茨城県 注目情報</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.pref.ibaraki.jp/bugai/koho/hodo/press/19press/p260528.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">知事定例記者会見（令和8年5月28日）</div><div class="art-meta"><span>📌 茨城県 注目情報</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.pref.ibaraki.jp/bugai/koho/hodo/chiji_/danwa.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">鹿島アントラーズのＪ１百年構想リーグＥＡＳＴ優勝に係る知事談話</div><div class="art-meta"><span>📌 茨城県 注目情報</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.pref.ibaraki.jp/seikatsukankyo/shizen/chojyuhogo/shibo.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">野鳥における高病原性鳥インフルエンザについて</div><div class="art-meta"><span>📌 茨城県 注目情報</span></div></div><div class="art-chevron">›</div></a><div class="sec-divider"><span class="sec-divider-label">🚨 茨城県 防災情報</span></div><a class="article" href="https://www.pref.ibaraki.jp/bousaikiki/bousaikiki/bousai/bousaijyouhou.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">県内で発令中の警報、市町村の避難情報の発令状況、避難所の開設状況など　はこちら（※９ヵ国語にて閲覧できます）</div><div class="art-meta"><span>🚨 茨城県 防災情報</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.pref.ibaraki.jp/seikatsukankyo/bousaikiki/bousai/bousaitaisaku/bousai_jouhou.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">日頃から確認すべき情報（ハザードマップ、河川情報、持ち出し品や備蓄品の準備）　はこちら</div><div class="art-meta"><span>🚨 茨城県 防災情報</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.pref.ibaraki.jp/seikatsukankyo/bousaikiki/bousai/bousaitaisaku/hinantaisakukyouka.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">県内市町村の避難対策強化に向けた取組み状況（避難行動要支援者の支援体制、マイ・タイムライン、避難訓練）はこちら</div><div class="art-meta"><span>🚨 茨城県 防災情報</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.pref.ibaraki.jp/bousaikiki/bousaikiki/bousai/ibarakipresaigaiinf.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">茨城県が過去に被害を受けた災害の情報について</div><div class="art-meta"><span>🚨 茨城県 防災情報</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.pref.ibaraki.jp/seikatsukankyo/bousaikiki/bousai/bousaitaisaku/my-timeline-top.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">マイ・タイムラインを作ろう</div><div class="art-meta"><span>🚨 茨城県 防災情報</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.pref.ibaraki.jp/doboku/kasen/dam/dosha/dosyasaigaikeikaijouhou.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">土砂災害警戒情報を避難の参考にご活用ください</div><div class="art-meta"><span>🚨 茨城県 防災情報</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.pref.ibaraki.jp/seikatsukankyo/bousaikiki/bousai/kouhatsujishin260420.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">「北海道・三陸沖後発地震注意情報」の発表について（令和8年4月20日）</div><div class="art-meta"><span>🚨 茨城県 防災情報</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.pref.ibaraki.jp/bousaikiki/bousaikiki/bousai/20221110kouhatuzisin.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">北海道・三陸沖後発地震注意情報</div><div class="art-meta"><span>🚨 茨城県 防災情報</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.pref.ibaraki.jp/seikatsukankyo/bousaikiki/bousai/bousaitaisaku/ibarakibousaidaigaku/jishinnhoken_kyousaikayuu.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">茨城県地震等災害保険・共済加入促進協議会</div><div class="art-meta"><span>🚨 茨城県 防災情報</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.pref.ibaraki.jp/seikatsukankyo/bousaikiki/bousai/kouhatsujishin.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">「北海道・三陸沖後発地震注意情報」の発表について（令和7年12月9日）</div><div class="art-meta"><span>🚨 茨城県 防災情報</span></div></div><div class="art-chevron">›</div></a>
+  </div>
 </div>
 
-<!-- 茨城県政タブ -->
-<div id="pref" class="tab-content">
-<div class="wrap">
-  <div class="sbar"><input class="sinput" type="search" placeholder="🔍 このタブ内を検索..." oninput="filt(this)" aria-label="検索"></div>
-  <p class="hint">▶ をクリックして展開 ／ タイトル行をタップして AI 要約を表示</p>
-  <details class="acc" open><summary class="acc-hd" style="--ac:#1B5E20"><span class="acc-lbl">📌 注目情報</span><span class="acc-cnt">10件</span><span class="acc-chv">›</span></summary><div class="acc-bd"><div class="src-blk"><div class="src-lbl">📌 茨城県 注目情報</div><div class="card-grid"><div class="card" style="--ac:#1B5E20">
-  <div class="c-in ex" data-t="c0" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.pref.ibaraki.jp/bugai/koho/kocho/data/sodan/kensei.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">通報報奨金制度について</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#1B5E20">茨城県 注目情報</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.pref.ibaraki.jp/bugai/koho/kocho/data/sodan/kensei.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
+<!-- ── 国政・国会 ── -->
+<div class="tab-content" id="tab-national">
+  <div class="page-sheet">
+<div class="top-story" style="background:linear-gradient(135deg,#EFF6FF 0%,#DBEAFE 100%);border-left:4px solid #1E40AF;box-shadow:0 2px 10px rgba(30,64,175,.10);"><div class="ts-eyebrow" style="color:#1E40AF"><span class="bar" style="background:#1E40AF"></span>総務省・今日の注目</div><div class="ts-title">令和8年度地方財政審議会（6月10日）議事要旨</div><div class="ts-meta"><span>📋 総務省</span></div><div class="ts-summary"><p>（AI要約失敗）令和8年度地方財政審議会（6月10日）議事要旨</p></div><a class="ts-link" href="https://www.soumu.go.jp/main_sosiki/singi/chizai/02zaisei02_04001397_00926.html" target="_blank" rel="noopener" style="color:#1E40AF">詳細を読む ›</a></div><div class="sec-divider"><span class="sec-divider-label">官邸・総務・内閣府</span></div><a class="article" href="https://www.kantei.go.jp/jp/105/statement/2026/0613kaiken.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">高市総理は英国・イタリア訪問及びＧ７エビアン・サミット出席についての会見を行いました</div><div class="art-meta"><span>🏛️ 首相官邸</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.kantei.go.jp/jp/105/actions/202606/12maj.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">高市総理はＭＵＳＩＣ　ＡＷＡＲＤＳ　ＪＡＰＡＮ　２０２６　Ｇａｌａ　Ｐａｒｔｙに出席しました</div><div class="art-meta"><span>🏛️ 首相官邸</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.kantei.go.jp/jp/105/actions/202606/12space.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">高市総理は第３４回宇宙開発戦略本部を開催しました</div><div class="art-meta"><span>🏛️ 首相官邸</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.kantei.go.jp/jp/105/actions/202606/12hyoukei.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">高市総理は日本学術会議の光石衛会長による表敬を受けました</div><div class="art-meta"><span>🏛️ 首相官邸</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.kantei.go.jp/jp/105/actions/202606/12chizai.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">高市総理は第５５回知的財産戦略本部を開催しました</div><div class="art-meta"><span>🏛️ 首相官邸</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.kantei.go.jp/jp/105/actions/202606/12shukou1.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">高市総理は自由民主党・外国人政策本部による提言を受け取りました</div><div class="art-meta"><span>🏛️ 首相官邸</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.kantei.go.jp/jp/tyoukanpress/202606/12_a.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">閣議の概要／高市総理の英国・イタリア訪問及びＧ７エビアン・サミット出席について</div><div class="art-meta"><span>🏛️ 首相官邸</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.kantei.go.jp/jp/105/actions/202606/12moushiire.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">高市総理は自由民主党・東日本大震災復興加速化本部による第１５次提言を受け取りました</div><div class="art-meta"><span>🏛️ 首相官邸</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.kantei.go.jp/jp/105/actions/202606/11kaigi_middle-east.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">高市総理は第１０回中東情勢に関する関係閣僚会議に出席しました</div><div class="art-meta"><span>🏛️ 首相官邸</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.kantei.go.jp/jp/105/actions/202606/11teigen.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">高市総理は自由民主党・日本成長戦略本部による提言を受け取りました</div><div class="art-meta"><span>🏛️ 首相官邸</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.soumu.go.jp/main_sosiki/singi/chizai/02zaisei02_04001397_00925.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">令和8年度地方財政審議会（6月9日）議事要旨</div><div class="art-meta"><span>📋 総務省</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.soumu.go.jp/main_sosiki/singi/chizai/02zaisei02_04001397_00924.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">令和8年度地方財政審議会（6月5日）議事要旨</div><div class="art-meta"><span>📋 総務省</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.soumu.go.jp/main_sosiki/joho_tsusin/policyreports/joho_tsusin/usf_seisaku/02kiban02_04000894.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">情報通信審議会　電気通信事業政策部会　ユニバーサルサービス政策委員会（第53回）・ユニバーサルサービス制度における交付金・負担金の算定等に関するワーキンググループ（第10回） 合同会合</div><div class="art-meta"><span>📋 総務省</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.soumu.go.jp/menu_news/s-news/01ryutsu13_02000157.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">日本郵政株式会社の剰余金の処分に係る決議に対する認可</div><div class="art-meta"><span>📋 総務省</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.soumu.go.jp/menu_news/s-news/01kiban02_02000605.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">国際海底ケーブルの防護等に関する検討会 報告書（案）についての意見募集</div><div class="art-meta"><span>📋 総務省</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.soumu.go.jp/menu_news/s-news/01gyosei01_02000372.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">地方自治法施行令の一部を改正する政令（案）に対する意見募集</div><div class="art-meta"><span>📋 総務省</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.soumu.go.jp/menu_news/s-news/01gyosei15_02000486.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">第51回衆議院議員総選挙における総務大臣表彰</div><div class="art-meta"><span>📋 総務省</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.soumu.go.jp/menu_news/s-news/hyouka_260612000190359.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">災害時の道路啓開に関する実態調査　＜勧告に対する改善措置状況（2回目のフォローアップ）の概要＞</div><div class="art-meta"><span>📋 総務省</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.soumu.go.jp/main_sosiki/joho_tsusin/policyreports/joho_tsusin/kaisai/02kiban09_04000730.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">情報通信審議会　情報通信技術分科会　電波有効利用委員会（第14回）</div><div class="art-meta"><span>📋 総務省</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.cao.go.jp/bunken-suishin/teianbosyu/2026/teianbosyu_r8_bosyukekka.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">令和8年地方分権改革に関する提案募集の結果及び関係府省への検討要請について</div><div class="art-meta"><span>🏢 内閣府 地方分権改革</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.cao.go.jp/bunken-suishin/kaigi/kaigikaisai/kaigi66gijishidai.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">第66回地方分権改革有識者会議・第186回提案募集検討専門部会 合同会議　議事次第・配布資料</div><div class="art-meta"><span>🏢 内閣府 地方分権改革</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.cao.go.jp/bunken-suishin/ikkatsu/16ikkatsu/16ikkatsu.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">「地域の自主性及び自立性を高めるための改革の推進を図るための関係法律の整備に関する法律」（令和８年法律第27号）（第16次地方分権一括法）が公布</div><div class="art-meta"><span>🏢 内閣府 地方分権改革</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.cao.go.jp/bunken-suishin/award/r07award.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">令和7年度地方分権改革推進アワードの受賞団体が決定しました</div><div class="art-meta"><span>🏢 内閣府 地方分権改革</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.cao.go.jp/bunken-suishin/kakugiketteitou/kakugiketteitou-index.html#taiouhoushin_r080327" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">「地域の自主性及び自立性を高めるための改革の推進を図るための関係法律の整備に関する法律案」（第16次地方分権一括法案）を閣議決定</div><div class="art-meta"><span>🏢 内閣府 地方分権改革</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.cao.go.jp/bunken-suishin/shinpokaisai/shimpokaisai12.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">【３月６日開催】地方分権改革シンポジウムの開催報告及び開催動画を掲載しました</div><div class="art-meta"><span>🏢 内閣府 地方分権改革</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.cao.go.jp/bunken-suishin/teianbosyu/2025/teianbosyu_kekka_yosan.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">令和7年関係府省における予算編成過程での検討を求めることとした提案の措置状況</div><div class="art-meta"><span>🏢 内閣府 地方分権改革</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.cao.go.jp/bunken-suishin/teianbosyu/2024/teianbosyu_kekka_yosan.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">令和6年関係府省における予算編成過程での検討を求めることとした提案の措置状況</div><div class="art-meta"><span>🏢 内閣府 地方分権改革</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.cao.go.jp/bunken-suishin/kaigi/kaigikaisai/kaigi65gijishidai.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">第65回地方分権改革有識者会議・第185回提案募集検討専門部会合同会議の議事録・議事概要を掲載</div><div class="art-meta"><span>🏢 内閣府 地方分権改革</span></div></div><div class="art-chevron">›</div></a><div class="sec-divider"><span class="sec-divider-label">省庁（農水・国交・厚労・環境）</span></div><a class="article" href="https://www.jfa.maff.go.jp/j/press/sigen/260612.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">令和8年度東京湾環境一斉調査の実施及び調査参加者の募集について</div><div class="art-meta"><span>🌾 農林水産省</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.maff.go.jp/j/press/shokuhin/kikaku/260612.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">豆腐及び納豆の認定指標作成等団体の認定について（豆腐・納豆コスト指標作成協議会）</div><div class="art-meta"><span>🌾 農林水産省</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.maff.go.jp/j/press/kanbo/kihyo01/260611.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">水田政策の見直しに関する地方説明会の開催及び参加者の募集について</div><div class="art-meta"><span>🌾 農林水産省</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.maff.go.jp/j/press/syouan/syokubo/260610.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">「令和8年度病害虫発生予報第3号」の発表について</div><div class="art-meta"><span>🌾 農林水産省</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.maff.go.jp/j/press/syouan/douei/260610.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">香港向け家きん由来製品の輸出再開について（青森県）</div><div class="art-meta"><span>🌾 農林水産省</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.affrc.maff.go.jp/docs/press/260609.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">「アグリビジネス創出フェア2026」で最新の研究成果を紹介しませんか</div><div class="art-meta"><span>🌾 農林水産省</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.maff.go.jp/j/press/y_kokusai/kikou/260608.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">G7臨時農業大臣会合の結果概要について</div><div class="art-meta"><span>🌾 農林水産省</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.maff.go.jp/j/press/chikusan/c_gyunyu/260605.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">令和8年度のバター及び脱脂粉乳の輸入枠数量の検証について</div><div class="art-meta"><span>🌾 農林水産省</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.affrc.maff.go.jp/docs/press/260605.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">令和8年度「農業技術功労者表彰」における候補者の募集を開始します</div><div class="art-meta"><span>🌾 農林水産省</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.maff.go.jp/j/press/nousin/kouryu/260605.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">令和8年度農福連携等応援コンソーシアム総会を開催します</div><div class="art-meta"><span>🌾 農林水産省</span></div></div><div class="art-chevron">›</div></a><div class="sec-divider"><span class="sec-divider-label">NHK政治</span></div><a class="article" href="https://news.web.nhk/newsweb/na/na-k10015149251000" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">高市首相 英に到着 首脳会談へ 経済安保の成果文書発表で調整</div><div class="art-meta"><span>📺 NHK 政治</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://news.web.nhk/newsweb/na/na-k10015149231000" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">自民 鈴木幹事長 終盤国会“皇室典範改正 優先で取り組む”</div><div class="art-meta"><span>📺 NHK 政治</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://news.web.nhk/newsweb/na/na-k10015149091000" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">高市首相 G7サミットなどへ出発 “G7連携し課題対応を主導”</div><div class="art-meta"><span>📺 NHK 政治</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://news.web.nhk/newsweb/na/na-k10015149141000" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">小泉防衛相 インドネシアと軍事情報共有検討開始で一致</div><div class="art-meta"><span>📺 NHK 政治</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://news.web.nhk/newsweb/na/na-k10015149071000" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">東京 渋谷「旧こどもの城」含む都有地再整備 実施方針を策定</div><div class="art-meta"><span>📺 NHK 政治</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://news.web.nhk/newsweb/na/na-k10015148781000" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">高市首相 重要鉱物「共同備蓄連携構想」提案へ G7サミット</div><div class="art-meta"><span>📺 NHK 政治</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://news.web.nhk/newsweb/na/na-k10015148791000" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">食料品の消費税減税 実務者会議で議論が本格化する見通し</div><div class="art-meta"><span>📺 NHK 政治</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://news.web.nhk/newsweb/na/na-k10015148921000" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">維新 藤田共同代表の皇室典範の改正などめぐる発言に野党反発</div><div class="art-meta"><span>📺 NHK 政治</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://news.web.nhk/newsweb/na/na-k10015148871000" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">日中友好団体が代表団の訪中を延期に 会長の河野洋平氏死去で</div><div class="art-meta"><span>📺 NHK 政治</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://news.web.nhk/newsweb/na/na-k10015148831000" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">茂木外相 タイ外相と会談 エネルギー分野など協力で一致</div><div class="art-meta"><span>📺 NHK 政治</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://news.web.nhk/newsweb/na/na-k10015148841000" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">参政・みらい 企業・団体献金見直しに向け 禁止法案を共同提出</div><div class="art-meta"><span>📺 NHK 政治</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://news.web.nhk/newsweb/na/na-k10015148511000" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">高市首相 維新 藤田共同代表らと会談 定数削減法案など成立を</div><div class="art-meta"><span>📺 NHK 政治</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://news.web.nhk/newsweb/na/na-k10015148821000" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">政府 知的財産推進計画を決定 権利侵害の新たな救済措置を検討</div><div class="art-meta"><span>📺 NHK 政治</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://news.web.nhk/newsweb/na/na-k10015148761000" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">高市首相 自民小野寺氏と会談 消費税減税めぐり意見交換</div><div class="art-meta"><span>📺 NHK 政治</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://news.web.nhk/newsweb/na/na-k10015148501000" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">再審制度の見直し 刑事訴訟法改正案が衆院法務委で可決</div><div class="art-meta"><span>📺 NHK 政治</span></div></div><div class="art-chevron">›</div></a>
   </div>
-  <div class="c-body" id="c0" hidden><p>茨城県が不法就労外国人に関する通報報奨金制度を立ち上げたことについての情報です。</p>
-<ul>
-<li>茨城県は、加速度的な人口減少による人手不足が深刻化する中、将来にわたり茨城県の経済成長を持続させるため、意欲と能力のある外国人材を積極的に受け入れることが不可欠であるとの認識のもと、不法就労対策を強化しています。</li>
-<li>茨城県の不法就労者数は3年連続で全国最多であり、直近5年間（2021</li>
-</ul></div>
-</div><div class="card" style="--ac:#1B5E20">
-  <div class="c-in ex" data-t="c1" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.pref.ibaraki.jp/hokenfukushi/iryo/iryo/isei/sentei_ryoyohi.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">救急搬送における選定療養費の徴収開始について</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#1B5E20">茨城県 注目情報</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.pref.ibaraki.jp/hokenfukushi/iryo/iryo/isei/sentei_ryoyohi.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c1" hidden><p>（情報取得中）</p></div>
-</div><div class="card" style="--ac:#1B5E20">
-  <div class="c-in ex" data-t="c2" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.pref.ibaraki.jp/kikaku/kikaku/seisaku/kikaku1-sogo/index.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">茨城県の取組「ここがすごい！」（第２次茨城県総合計画～主要指標等実績一覧～）</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#1B5E20">茨城県 注目情報</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.pref.ibaraki.jp/kikaku/kikaku/seisaku/kikaku1-sogo/index.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c2" hidden><p>（情報取得中）</p></div>
-</div><div class="card" style="--ac:#1B5E20">
-  <div class="c-in ex" data-t="c3" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.pref.ibaraki.jp/somu/zeimu/kikaku/tax-forforeigners.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">新型コロナウィルス感染症の影響に対する県税の取扱いについて</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#1B5E20">茨城県 注目情報</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.pref.ibaraki.jp/somu/zeimu/kikaku/tax-forforeigners.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c3" hidden><p>茨城県における県税の概要と納税に関する情報（外国人向け）</p>
-<ul>
-<li>茨城県は、2026年6月2日更新の情報として、日本に住所を持つ外国人住民を主な対象に、県税（個人住民税、自動車税、不動産取得税）の概要、納税方法、滞納時の対応、納税管理人制度、県税事務所の管轄などを多言語での理解を促進するために提供しています。この情報源のタイトルは「新型コロナウィルス感染症の影響に対する県税の取扱いについて」</li>
-</ul></div>
-</div></div><div class="lbox"><div class="lrow"><a href="https://www.pref.ibaraki.jp/koho/eizo-onsei/challenge_iba/index.html" target="_blank" rel="noopener">【CHALLENGE IBARAKI】#79  いばらきデザインセレクション</a><span class="ldesc">茨城県の政策広報番組…</span></div><div class="lrow"><a href="https://www.pref.ibaraki.jp/somu/zeimu/kikaku/tax-forforeigners.html" target="_blank" rel="noopener">新型コロナウィルス感染症の影響に対する県税の取扱いについて</a></div><div class="lrow"><a href="https://www.pref.ibaraki.jp/hokenfukushi/fukushi/jinken/danjo-jichitairenkei.html" target="_blank" rel="noopener">いばらきパートナーシップ宣誓制度を実施しています</a></div><div class="lrow"><a href="https://www.pref.ibaraki.jp/bugai/koho/hodo/press/19press/p260528.html" target="_blank" rel="noopener">知事定例記者会見（令和8年5月28日）</a></div><div class="lrow"><a href="https://www.pref.ibaraki.jp/bugai/koho/hodo/chiji_/danwa.html" target="_blank" rel="noopener">鹿島アントラーズのＪ１百年構想リーグＥＡＳＴ優勝に係る知事談話</a></div><div class="lrow"><a href="https://www.pref.ibaraki.jp/seikatsukankyo/shizen/chojyuhogo/shibo.html" target="_blank" rel="noopener">野鳥における高病原性鳥インフルエンザについて</a></div></div></div></div></details><details class="acc"><summary class="acc-hd" style="--ac:#C62828"><span class="acc-lbl">🚨 防災情報</span><span class="acc-cnt">10件</span><span class="acc-chv">›</span></summary><div class="acc-bd"><div class="src-blk"><div class="src-lbl">🚨 茨城県 防災情報</div><div class="card-grid"><div class="card" style="--ac:#C62828">
-  <div class="c-in ex" data-t="c4" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.pref.ibaraki.jp/bousaikiki/bousaikiki/bousai/bousaijyouhou.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">県内で発令中の警報、市町村の避難情報の発令状況、避難所の開設状況など　はこちら（※９ヵ国語にて閲覧できます）</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#C62828">茨城県 防災情報</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.pref.ibaraki.jp/bousaikiki/bousaikiki/bousai/bousaijyouhou.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c4" hidden><p>（AI要約失敗）大雨や地震時の情報のほか、それに伴う災害が発生した際の情報を発信する</p></div>
-</div><div class="card" style="--ac:#C62828">
-  <div class="c-in ex" data-t="c5" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.pref.ibaraki.jp/seikatsukankyo/bousaikiki/bousai/bousaitaisaku/bousai_jouhou.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">日頃から確認すべき情報（ハザードマップ、河川情報、持ち出し品や備蓄品の準備）　はこちら</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#C62828">茨城県 防災情報</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.pref.ibaraki.jp/seikatsukankyo/bousaikiki/bousai/bousaitaisaku/bousai_jouhou.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c5" hidden><p>（AI要約失敗）防災の役に立つ情報をとりまとめたページを開設しました。</p></div>
-</div><div class="card" style="--ac:#C62828">
-  <div class="c-in ex" data-t="c6" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.pref.ibaraki.jp/seikatsukankyo/bousaikiki/bousai/bousaitaisaku/hinantaisakukyouka.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">県内市町村の避難対策強化に向けた取組み状況（避難行動要支援者の支援体制、マイ・タイムライン、避難訓練）はこちら</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#C62828">茨城県 防災情報</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.pref.ibaraki.jp/seikatsukankyo/bousaikiki/bousai/bousaitaisaku/hinantaisakukyouka.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c6" hidden><p>茨城県が県内市町村と連携して進める避難対策強化の取組み状況に関する情報です。</p>
-<ul>
-<li>対象と目的：茨城県は、台風などの大雨に備え、災害ハザード（洪水、土砂災害）内の逃げ遅れによる人的被害ゼロを目指し、避難対策強化の取組みを県内市町村と連携して進めています。</li>
-<li>避難行動要支援者への支援体制：2023年から茨城県と市町村が連携し、自主防災組織、自治会、消防団、市町村職員などの地域の関係者による避難行動要支援者に対する支援体制の整備に取り組み、2026年1月末をもって全市町村で体制整備が完了しました。今後は、市町村と連携して個別避難計画の作成を推進します。これは、地域住民の安全確保に直結し、地方自治体は計画作成支援のための人員配置や予算確保が求められます。</li>
-<li>マイ・タイムラインの普及・啓発：茨城県や市町村は、水害時などに「いつ」「どのような」行動を取るかを事前に整理し、適切な避難行動につなげるため、洪水ハザードエリアにお住まいの方に「マイ・タイムライン」の作成を推奨しています。古河市が優良事例として挙げられています。住民が主体的に防災意識を高めることで、災害時の混乱を軽減し、地方自治体の避難誘導負担を軽減する効果が期待されます。</li>
-<li>市町村における洪水ハザード内の訓練実施：茨城県は、県内の洪水（一部土砂）ハザード内の住民を対象にした避難訓練の実施を市町村に要請しています。住民はマイ・タイムライン等を活用して訓練への参加が求められます。これにより、地域住民の避難行動の習熟度を高め、地方自治体は訓練実施のための予算や人員を確保する必要があります。</li>
-<li>避難力強化訓練の実施</li>
-</ul></div>
-</div></div><div class="lbox"><div class="lrow"><a href="https://www.pref.ibaraki.jp/bousaikiki/bousaikiki/bousai/ibarakipresaigaiinf.html" target="_blank" rel="noopener">茨城県が過去に被害を受けた災害の情報について</a><span class="ldesc">茨城県が過去に被害を受けた災害に関する情報について掲載しています。…</span></div><div class="lrow"><a href="https://www.pref.ibaraki.jp/seikatsukankyo/bousaikiki/bousai/bousaitaisaku/my-timeline-top.html" target="_blank" rel="noopener">マイ・タイムラインを作ろう</a><span class="ldesc">適切な避難を支援するマイ・タイムラインを作成するための情報を掲載しています。…</span></div><div class="lrow"><a href="https://www.pref.ibaraki.jp/doboku/kasen/dam/dosha/dosyasaigaikeikaijouhou.html" target="_blank" rel="noopener">土砂災害警戒情報を避難の参考にご活用ください</a></div><div class="lrow"><a href="https://www.pref.ibaraki.jp/seikatsukankyo/bousaikiki/bousai/kouhatsujishin260420.html" target="_blank" rel="noopener">「北海道・三陸沖後発地震注意情報」の発表について（令和8年4月20日）</a></div><div class="lrow"><a href="https://www.pref.ibaraki.jp/bousaikiki/bousaikiki/bousai/20221110kouhatuzisin.html" target="_blank" rel="noopener">北海道・三陸沖後発地震注意情報</a><span class="ldesc">日本海溝・千島海溝沿いの巨大地震の想定震源域とその周辺でMw７以上の地震が発生した場合には、「北海道・三陸沖後発地震注意…</span></div><div class="lrow"><a href="https://www.pref.ibaraki.jp/seikatsukankyo/bousaikiki/bousai/bousaitaisaku/ibarakibousaidaigaku/jishinnhoken_kyousaikayuu.html" target="_blank" rel="noopener">茨城県地震等災害保険・共済加入促進協議会</a><span class="ldesc">茨城県地震等災害保険…</span></div><div class="lrow"><a href="https://www.pref.ibaraki.jp/seikatsukankyo/bousaikiki/bousai/kouhatsujishin.html" target="_blank" rel="noopener">「北海道・三陸沖後発地震注意情報」の発表について（令和7年12月9日）</a></div></div></div></div></details>
-</div>
 </div>
 
-<!-- 国政・省庁タブ -->
-<div id="national" class="tab-content">
-<div class="wrap">
-  <div class="sbar"><input class="sinput" type="search" placeholder="🔍 このタブ内を検索..." oninput="filt(this)" aria-label="検索"></div>
-  <p class="hint">▶ をクリックして展開 ／ タイトル行をタップして AI 要約を表示</p>
-  <details class="acc" open><summary class="acc-hd" style="--ac:#1565C0"><span class="acc-lbl">🏛️ 官邸・総務・内閣府</span><span class="acc-cnt">30件</span><span class="acc-chv">›</span></summary><div class="acc-bd"><div class="src-blk"><div class="src-lbl">🏛️ 首相官邸</div><div class="card-grid"><div class="card" style="--ac:#1565C0">
-  <div class="c-in ex" data-t="c7" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.kantei.go.jp/jp/105/statement/2026/0613kaiken.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">高市総理は英国・イタリア訪問及びＧ７エビアン・サミット出席についての会見を行いました</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#1565C0">首相官邸</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.kantei.go.jp/jp/105/statement/2026/0613kaiken.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
+<!-- ── 補助金 ── -->
+<div class="tab-content" id="tab-subsidy">
+  <div class="page-sheet">
+<div class="top-story" style="background:linear-gradient(135deg,#FFFBEB 0%,#FEF3C7 100%);border-left:4px solid #D97706;box-shadow:0 2px 10px rgba(217,119,6,.10);"><div class="ts-eyebrow" style="color:#D97706"><span class="bar" style="background:#D97706"></span>ミラサポplus・注目の補助金</div><div class="ts-title">中東情勢等を踏まえた中小企業・小規模事業者向け支援について</div><div class="ts-meta"><span>💼 ミラサポplus</span></div><div class="ts-summary"><p>（AI要約失敗）&amp;#160; 事業者のみなさま 中小企業庁です。 中東・ウクライナ情勢・原油価格上昇の影響により、資金繰りやコスト上昇等でお困りの中小企業・小規模事業者の皆様に対し、相談窓口の設置や資金繰り支援、設備投資支援等を実施して [&amp;#8230;]</p></div><a class="ts-link" href="https://mirasapo-plus.go.jp/infomation/32066/" target="_blank" rel="noopener" style="color:#D97706">詳細を読む ›</a></div><div class="sec-divider"><span class="sec-divider-label">補助金・助成金一覧</span></div><a class="article" href="https://mirasapo-plus.go.jp/hint/32605/" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">中小企業庁担当者に聞く | 業務の改善支援で、人手不足の解決につなげる「生産性向上支援センター」</div><div class="art-meta"><span>💼 ミラサポplus</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://mirasapo-plus.go.jp/infomation/32495/" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">【補助金】省力化投資補助事業（一般型）の第7回公募要領を公開【7月上旬申請受付開始、7月下旬申請締切、11月中旬採択発表予定】</div><div class="art-meta"><span>💼 ミラサポplus</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://mirasapo-plus.go.jp/infomation/32614/" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">中小企業庁担当者に聞く「生産性向上支援センター」</div><div class="art-meta"><span>💼 ミラサポplus</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://mirasapo-plus.go.jp/infomation/32507/" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">省力化投資補助金（一般型）第5回公募の補助金交付候補者を採択</div><div class="art-meta"><span>💼 ミラサポplus</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://mirasapo-plus.go.jp/infomation/32472/" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">【補助金】日本発の優れたコンテンツ（アニメ、実写映像、音楽、ゲームなど）を世界へ</div><div class="art-meta"><span>💼 ミラサポplus</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://mirasapo-plus.go.jp/infomation/32451/" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">「2026年版ものづくり白書」を取りまとめました</div><div class="art-meta"><span>💼 ミラサポplus</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://mirasapo-plus.go.jp/infomation/32430/" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">「はばたく中小企業・小規模事業者300社」を選定しました</div><div class="art-meta"><span>💼 ミラサポplus</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://mirasapo-plus.go.jp/infomation/32394/" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">【補助金】持続化補助金＜創業型＞（第4回）の公募要領を公開【申請受付期間：11/5～12/15】</div><div class="art-meta"><span>💼 ミラサポplus</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://mirasapo-plus.go.jp/infomation/32381/" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">【補助金】持続化補助金＜一般型・通常枠＞（第20回）の公募要領を公開【申請受付期間：11/5～12/15】</div><div class="art-meta"><span>💼 ミラサポplus</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://mirasapo-plus.go.jp/infomation/32326/" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">経済産業省「国際化促進インターンシップ事業」参加企業を募集中！</div><div class="art-meta"><span>💼 ミラサポplus</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://mirasapo-plus.go.jp/infomation/32364/" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">2026年版「中小企業白書」・「小規模企業白書」の解説動画を公開</div><div class="art-meta"><span>💼 ミラサポplus</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://mirasapo-plus.go.jp/infomation/32263/" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">【補助金】新事業進出補助金の第４回公募の申請受付を開始しました【申請受付期間：5/19～6/19】</div><div class="art-meta"><span>💼 ミラサポplus</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://mirasapo-plus.go.jp/infomation/32238/" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">持続化補助金・優良事例発表会を開催します</div><div class="art-meta"><span>💼 ミラサポplus</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://mirasapo-plus.go.jp/infomation/32215/" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">【補助金】商用車等の電動化促進事業 （トラック、タクシー・バス）」の公募について</div><div class="art-meta"><span>💼 ミラサポplus</span></div></div><div class="art-chevron">›</div></a><a class="article" href="https://www.soumu.go.jp/main_sosiki/joho_tsusin/policyreports/joho_tsusin/usf_seisaku/02kiban02_04000894.html" target="_blank" rel="noopener"><div class="art-body"><div class="art-title">情報通信審議会　電気通信事業政策部会　ユニバーサルサービス政策委員会（第53回）・ユニバーサルサービス制度における交付金・負担金の算定等に関するワーキンググループ（第10回） 合同会合</div><div class="art-meta"><span>🔗 関連情報（省庁フィルタ）</span></div></div><div class="art-chevron">›</div></a>
   </div>
-  <div class="c-body" id="c7" hidden><p>（情報取得中）</p></div>
-</div><div class="card" style="--ac:#1565C0">
-  <div class="c-in ex" data-t="c8" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.kantei.go.jp/jp/105/actions/202606/12maj.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">高市総理はＭＵＳＩＣ　ＡＷＡＲＤＳ　ＪＡＰＡＮ　２０２６　Ｇａｌａ　Ｐａｒｔｙに出席しました</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#1565C0">首相官邸</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.kantei.go.jp/jp/105/actions/202606/12maj.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c8" hidden><p>（情報取得中）</p></div>
-</div><div class="card" style="--ac:#1565C0">
-  <div class="c-in ex" data-t="c9" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.kantei.go.jp/jp/105/actions/202606/12space.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">高市総理は第３４回宇宙開発戦略本部を開催しました</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#1565C0">首相官邸</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.kantei.go.jp/jp/105/actions/202606/12space.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c9" hidden><p>高市総理が第34回宇宙開発戦略本部を開催し、宇宙基本計画工程表改訂に向けた重点事項を議論した情報です。</p>
-<ul>
-<li>令和8年6月12日、高市総理は総理大臣官邸で第34回宇宙開発戦略本部を開催し、宇宙基本計画工程表改訂に向けた重点事項について議論しました。</li>
-<li>高市総理は、宇宙分野を17の戦略分野の一つと位置づけ、安全保障、経済活動、国民生活を支える次世代</li>
-</ul></div>
-</div></div><div class="lbox"><div class="lrow"><a href="https://www.kantei.go.jp/jp/105/actions/202606/12hyoukei.html" target="_blank" rel="noopener">高市総理は日本学術会議の光石衛会長による表敬を受けました</a></div><div class="lrow"><a href="https://www.kantei.go.jp/jp/105/actions/202606/12chizai.html" target="_blank" rel="noopener">高市総理は第５５回知的財産戦略本部を開催しました</a></div><div class="lrow"><a href="https://www.kantei.go.jp/jp/105/actions/202606/12shukou1.html" target="_blank" rel="noopener">高市総理は自由民主党・外国人政策本部による提言を受け取りました</a></div><div class="lrow"><a href="https://www.kantei.go.jp/jp/tyoukanpress/202606/12_a.html" target="_blank" rel="noopener">閣議の概要／高市総理の英国・イタリア訪問及びＧ７エビアン・サミット出席について</a></div><div class="lrow"><a href="https://www.kantei.go.jp/jp/105/actions/202606/12moushiire.html" target="_blank" rel="noopener">高市総理は自由民主党・東日本大震災復興加速化本部による第１５次提言を受け取りました</a></div><div class="lrow"><a href="https://www.kantei.go.jp/jp/105/actions/202606/11kaigi_middle-east.html" target="_blank" rel="noopener">高市総理は第１０回中東情勢に関する関係閣僚会議に出席しました</a></div><div class="lrow"><a href="https://www.kantei.go.jp/jp/105/actions/202606/11teigen.html" target="_blank" rel="noopener">高市総理は自由民主党・日本成長戦略本部による提言を受け取りました</a></div></div></div><div class="src-blk"><div class="src-lbl">📋 総務省</div><div class="card-grid"><div class="card" style="--ac:#1565C0">
-  <div class="c-in ex" data-t="c10" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.soumu.go.jp/main_sosiki/singi/chizai/02zaisei02_04001397_00926.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">令和8年度地方財政審議会（6月10日）議事要旨</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#1565C0">総務省</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.soumu.go.jp/main_sosiki/singi/chizai/02zaisei02_04001397_00926.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c10" hidden><p>（AI要約失敗）令和8年度地方財政審議会（6月10日）議事要旨</p></div>
-</div><div class="card" style="--ac:#1565C0">
-  <div class="c-in ex" data-t="c11" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.soumu.go.jp/main_sosiki/singi/chizai/02zaisei02_04001397_00925.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">令和8年度地方財政審議会（6月9日）議事要旨</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#1565C0">総務省</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.soumu.go.jp/main_sosiki/singi/chizai/02zaisei02_04001397_00925.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c11" hidden><p>（AI要約失敗）令和8年度地方財政審議会（6月9日）議事要旨</p></div>
-</div><div class="card" style="--ac:#1565C0">
-  <div class="c-in ex" data-t="c12" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.soumu.go.jp/main_sosiki/singi/chizai/02zaisei02_04001397_00924.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">令和8年度地方財政審議会（6月5日）議事要旨</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#1565C0">総務省</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.soumu.go.jp/main_sosiki/singi/chizai/02zaisei02_04001397_00924.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c12" hidden><p>令和8年度地方財政審議会における地方公共団体のサイバーセキュリティ対策に関する議事要旨です</p>
-<ul>
-<li>令和8年6月5日（金）10時00分から11時10分まで、地方財政審議会室において、総務省の地方財政審議会が開催されました。委員は小西砂千夫（会長）、古谷ひろみ、内田明憲、西野範彦、星野菜穗子氏が出席し、自治行政局住民制度課サイバーセキュリティ対策室 理事官 田中俊郎氏が説明を行いました。</li>
-<li>今回の議題は、令和8年4月に施行された改正地方自治法等を踏まえ、地方公共団体におけるサイバーセキュリティ対策について、総務省から説明を受け、質疑応答及び意見交換を行うことでした。</li>
-<li>令和6年改正の地方自治法により、地方公共団体にサイバーセキュリティ対策の実施義務が法的に措置されました。これは国からの要請ではなく、法律に基づく義務であり、全ての地方自治体が対象となります。</li>
-<li>地方公共団体がサイバーセキュリティ対策を実施する上での主な課題として、特に専門人材の不足と、対策にかかる財政負担が大きいことが指摘されました。</li>
-<li>サイバーセキュリティ確保のためには、首長がその重要性や責務を強く認識する必要があるとの意見が出され、説明会等で首長が集まる場を活用して周知することが有効であるとされました。</li>
-<li>今後制定される省令の内容については、人的、物理的、技術的セキュリティ対策に関する基本的な事項が規定される予定です。</li>
-<li>地方自治への影響として、全ての地方公共団体にサイバーセキュリティ対策が義務付けられることで、自治体の情報ガバナンスが強化され、情報システムの安全性が向上します。住民生活への影響としては、個人情報漏洩やシステム障害のリスクが低減し、住民が安心して行政サービスを利用できる環境が整備されます。選挙への影響としては、選挙管理システム等のセキュリティ強化により、選挙の公正性・信頼性が確保されます。財政への影響としては、専門人材の確保やシステム導入・維持管理に多大な財政負担が生じるため、特に中小規模の自治体では国からの財政支援や共同利用システムの導入が不可欠となります。</li>
-</ul></div>
-</div></div><div class="lbox"><div class="lrow"><a href="https://www.soumu.go.jp/main_sosiki/joho_tsusin/policyreports/joho_tsusin/usf_seisaku/02kiban02_04000894.html" target="_blank" rel="noopener">情報通信審議会　電気通信事業政策部会　ユニバーサルサービス政策委員会（第53回）・ユニバーサルサービス制度における交付金・負担金の算定等に関するワーキンググループ（第10回） 合同会合</a><span class="ldesc">情報通信審議会　電気通信事業政策部会　ユニバーサルサービス政策委員会（第53回）・ユニバーサルサービス制度における交付金…</span></div><div class="lrow"><a href="https://www.soumu.go.jp/menu_news/s-news/01ryutsu13_02000157.html" target="_blank" rel="noopener">日本郵政株式会社の剰余金の処分に係る決議に対する認可</a><span class="ldesc">日本郵政株式会社の剰余金の処分に係る決議に対する認可…</span></div><div class="lrow"><a href="https://www.soumu.go.jp/menu_news/s-news/01kiban02_02000605.html" target="_blank" rel="noopener">国際海底ケーブルの防護等に関する検討会 報告書（案）についての意見募集</a><span class="ldesc">国際海底ケーブルの防護等に関する検討会 報告書（案）についての意見募集…</span></div><div class="lrow"><a href="https://www.soumu.go.jp/menu_news/s-news/01gyosei01_02000372.html" target="_blank" rel="noopener">地方自治法施行令の一部を改正する政令（案）に対する意見募集</a><span class="ldesc">地方自治法施行令の一部を改正する政令（案）に対する意見募集…</span></div><div class="lrow"><a href="https://www.soumu.go.jp/menu_news/s-news/01gyosei15_02000486.html" target="_blank" rel="noopener">第51回衆議院議員総選挙における総務大臣表彰</a><span class="ldesc">第51回衆議院議員総選挙における総務大臣表彰…</span></div><div class="lrow"><a href="https://www.soumu.go.jp/menu_news/s-news/hyouka_260612000190359.html" target="_blank" rel="noopener">災害時の道路啓開に関する実態調査　＜勧告に対する改善措置状況（2回目のフォローアップ）の概要＞</a><span class="ldesc">災害時の道路啓開に関する実態調査　＜勧告に対する改善措置状況（2回目のフォローアップ）の概要＞…</span></div><div class="lrow"><a href="https://www.soumu.go.jp/main_sosiki/joho_tsusin/policyreports/joho_tsusin/kaisai/02kiban09_04000730.html" target="_blank" rel="noopener">情報通信審議会　情報通信技術分科会　電波有効利用委員会（第14回）</a><span class="ldesc">情報通信審議会　情報通信技術分科会　電波有効利用委員会（第14回）…</span></div></div></div><div class="src-blk"><div class="src-lbl">🏢 内閣府 地方分権改革</div><div class="card-grid"><div class="card" style="--ac:#1565C0">
-  <div class="c-in ex" data-t="c13" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.cao.go.jp/bunken-suishin/teianbosyu/2026/teianbosyu_r8_bosyukekka.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">令和8年地方分権改革に関する提案募集の結果及び関係府省への検討要請について</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#1565C0">内閣府 地方分権改革</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.cao.go.jp/bunken-suishin/teianbosyu/2026/teianbosyu_r8_bosyukekka.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c13" hidden><p>令和8年地方分権改革に関する提案募集の結果と関係府省庁への検討要請についてです</p>
-<ul>
-<li>内閣府地方分権改革推進室は、令和8年2月2日から令和8年4月21日までの期間、地方分権改革に関する提案を募集し、地方から合計385件の提案が寄せられました。</li>
-<li>提案された385件のうち、重点募集テーマ別の内訳は、「事務処理方法の見直し」に関する提案が240件、「</li>
-</ul></div>
-</div><div class="card" style="--ac:#1565C0">
-  <div class="c-in ex" data-t="c14" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.cao.go.jp/bunken-suishin/kaigi/kaigikaisai/kaigi66gijishidai.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">第66回地方分権改革有識者会議・第186回提案募集検討専門部会 合同会議　議事次第・配布資料</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#1565C0">内閣府 地方分権改革</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.cao.go.jp/bunken-suishin/kaigi/kaigikaisai/kaigi66gijishidai.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c14" hidden><p>（情報取得中）</p></div>
-</div><div class="card" style="--ac:#1565C0">
-  <div class="c-in ex" data-t="c15" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.cao.go.jp/bunken-suishin/ikkatsu/16ikkatsu/16ikkatsu.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">「地域の自主性及び自立性を高めるための改革の推進を図るための関係法律の整備に関する法律」（令和８年法律第27号）（第16次地方分権一括法）が公布</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#1565C0">内閣府 地方分権改革</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.cao.go.jp/bunken-suishin/ikkatsu/16ikkatsu/16ikkatsu.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c15" hidden><p>第16次地方分権一括法「地域の自主性及び自立性を高めるための改革の推進を図るための関係法律の整備に関する法律」（令和8年法律第27号）の公布に関する情報</p>
-<ul>
-<li>内閣府 地方分権改革は、第16次地方分権一括法（令和8年法律第27号）の公布を発表しました。この法律は、平成26年から導入された「提案募集方式」に基づき、地方公共団体等からの提案を踏まえた「令和7年の地方からの提案等に関する対応方針」（令和7年12月23日閣議決定）に基づいて、義務付け・枠付けの見直し等を推進するために制定されました。</li>
-<li>第16次一括法は、令和8年6月3日に公布され、体制整備に特に時間を要するもの等を除き、公布日から施行されます。これにより、地方自治法、地方公営企業法、地方独立行政法人法、広域臨海環境整備センター法、障害者総合支援法、地方住宅供給公社法など、多岐にわたる関係法律が改正されます。</li>
-<li>「提案募集方式」は、国が選ぶのではなく、地方が選ぶことができる地方分権改革を進めるために平成26年に導入された制度であり、地方公共団体等からの具体的な提案を基に、国の義務付けや枠付けの見直しを進めるものです。</li>
-<li>地方自治への影響として、地方公共団体は国からの義務付けや枠付けの緩和により、地域の特性に応じた政策決定や行政運営の自由度が高まります。これにより、住民ニーズに即したきめ細やかなサービス提供や地域活性化策の実施が期待されます。</li>
-<li>住民生活への影響として、地方自治体の裁量が増すことで、地域の実情に合わせた公共サービスやインフラ整備が進み、住民の利便性向上や生活の質の向上が見込まれます。</li>
-<li>財政への影響として、義務付け・枠付けの見直しにより、地方公共団体が事業実施方法や財源配分をより柔軟に決定できるようになる可能性があります。これにより、効率的な財政運営や、地域の実情に合わせた予算配分が可能となり、無駄の削減や住民サービスの向上に繋がる可能性があります。</li>
-<li>選挙への影響として、地方分権の推進は、地方議員が地域課題解決に向けた政策立案や住民との対話を通じて、より主体的な役割を果たす機会を増やします。これにより、地方選挙において、候補者の政策実行能力や地域貢献への姿勢がより重視される傾向が強まる可能性があります。</li>
-</ul></div>
-</div></div><div class="lbox"><div class="lrow"><a href="https://www.cao.go.jp/bunken-suishin/ikkatsu/16ikkatsu/16ikkatsu.html" target="_blank" rel="noopener">「地域の自主性及び自立性を高めるための改革の推進を図るための関係法律の整備に関する法律」（第16次地方分権一括法）が成立</a></div><div class="lrow"><a href="https://www.cao.go.jp/bunken-suishin/award/r07award.html" target="_blank" rel="noopener">令和7年度地方分権改革推進アワードの受賞団体が決定しました</a></div><div class="lrow"><a href="https://www.cao.go.jp/bunken-suishin/kakugiketteitou/kakugiketteitou-index.html#taiouhoushin_r080327" target="_blank" rel="noopener">「地域の自主性及び自立性を高めるための改革の推進を図るための関係法律の整備に関する法律案」（第16次地方分権一括法案）を閣議決定</a></div><div class="lrow"><a href="https://www.cao.go.jp/bunken-suishin/shinpokaisai/shimpokaisai12.html" target="_blank" rel="noopener">【３月６日開催】地方分権改革シンポジウムの開催報告及び開催動画を掲載しました</a></div><div class="lrow"><a href="https://www.cao.go.jp/bunken-suishin/teianbosyu/2025/teianbosyu_kekka_yosan.html" target="_blank" rel="noopener">令和7年関係府省における予算編成過程での検討を求めることとした提案の措置状況</a></div><div class="lrow"><a href="https://www.cao.go.jp/bunken-suishin/teianbosyu/2024/teianbosyu_kekka_yosan.html" target="_blank" rel="noopener">令和6年関係府省における予算編成過程での検討を求めることとした提案の措置状況</a></div><div class="lrow"><a href="https://www.cao.go.jp/bunken-suishin/kaigi/kaigikaisai/kaigi65gijishidai.html" target="_blank" rel="noopener">第65回地方分権改革有識者会議・第185回提案募集検討専門部会合同会議の議事録・議事概要を掲載</a></div></div></div></div></details><details class="acc"><summary class="acc-hd" style="--ac:#4527A0"><span class="acc-lbl">🏗️ 省庁（農水・国交・厚労・環境）</span><span class="acc-cnt">10件</span><span class="acc-chv">›</span></summary><div class="acc-bd"><div class="src-blk"><div class="src-lbl">🌾 農林水産省</div><div class="card-grid"><div class="card" style="--ac:#4527A0">
-  <div class="c-in ex" data-t="c16" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.jfa.maff.go.jp/j/press/sigen/260612.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">令和8年度東京湾環境一斉調査の実施及び調査参加者の募集について</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#4527A0">農林水産省</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.jfa.maff.go.jp/j/press/sigen/260612.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c16" hidden><p>農林水産省が令和8年度東京湾環境一斉調査の実施と参加機関の募集を発表した情報</p>
-<ul>
-<li>農林水産省 水産庁は、関係機関と協力し「令和8年度東京湾環境一斉調査」を実施します。本調査は、東京湾及びその流域において、多様な主体が協働して水質や生物の調査を実施することにより、国民・流域住民の東京湾再生への関心の醸成を図るとともに、東京湾及び関係する陸域の水質環境の把握等を目的としています。</li>
-<li>調査実施時期は、水質調査が令和8年8月5日水曜日（予備日：令和8年8月12日水曜日）、生物調査が令和8年7月から9月、環境啓発活動等が令和8年7月から10月です。これらの実施時期は目安であり、その前後に実施される調査又は活動も募集対象となります。</li>
-<li>参加対象機関は、企業、NPO等の市民団体、大学・研究機関、九都県市ほか東京湾岸・流域自治体、国の機関と幅広く募集されています。</li>
-</ul></div>
-</div><div class="card" style="--ac:#4527A0">
-  <div class="c-in ex" data-t="c17" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.maff.go.jp/j/press/shokuhin/kikaku/260612.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">豆腐及び納豆の認定指標作成等団体の認定について（豆腐・納豆コスト指標作成協議会）</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#4527A0">農林水産省</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.maff.go.jp/j/press/shokuhin/kikaku/260612.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c17" hidden><p>（情報取得中）</p></div>
-</div><div class="card" style="--ac:#4527A0">
-  <div class="c-in ex" data-t="c18" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.maff.go.jp/j/press/kanbo/kihyo01/260611.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">水田政策の見直しに関する地方説明会の開催及び参加者の募集について</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#4527A0">農林水産省</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.maff.go.jp/j/press/kanbo/kihyo01/260611.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c18" hidden><p>農林水産省が令和9年度からの水田政策の見直しについて、全国8ブロックで地方説明会を開催し、参加者を募集している情報です。</p>
-<ul>
-<li>目的と背景: 農林水産省は、令和7年4月に閣議決定された食料・農業・農村基本計画に基づき、令和9年度から根本的に見直される水田政策について、全国各地の農業者や団体等の関係者に説明し、意見を聴取するため、地方説明会を開催します。</li>
-<li>開催期間と規模: 地方</li>
-</ul></div>
-</div></div><div class="lbox"><div class="lrow"><a href="https://www.maff.go.jp/j/press/syouan/syokubo/260610.html" target="_blank" rel="noopener">「令和8年度病害虫発生予報第3号」の発表について</a></div><div class="lrow"><a href="https://www.maff.go.jp/j/press/syouan/douei/260610.html" target="_blank" rel="noopener">香港向け家きん由来製品の輸出再開について（青森県）</a></div><div class="lrow"><a href="https://www.affrc.maff.go.jp/docs/press/260609.html" target="_blank" rel="noopener">「アグリビジネス創出フェア2026」で最新の研究成果を紹介しませんか</a></div><div class="lrow"><a href="https://www.maff.go.jp/j/press/y_kokusai/kikou/260608.html" target="_blank" rel="noopener">G7臨時農業大臣会合の結果概要について</a></div><div class="lrow"><a href="https://www.maff.go.jp/j/press/chikusan/c_gyunyu/260605.html" target="_blank" rel="noopener">令和8年度のバター及び脱脂粉乳の輸入枠数量の検証について</a></div><div class="lrow"><a href="https://www.affrc.maff.go.jp/docs/press/260605.html" target="_blank" rel="noopener">令和8年度「農業技術功労者表彰」における候補者の募集を開始します</a></div><div class="lrow"><a href="https://www.maff.go.jp/j/press/nousin/kouryu/260605.html" target="_blank" rel="noopener">令和8年度農福連携等応援コンソーシアム総会を開催します</a></div></div></div></div></details><details class="acc"><summary class="acc-hd" style="--ac:#C62828"><span class="acc-lbl">📺 NHK政治</span><span class="acc-cnt">15件</span><span class="acc-chv">›</span></summary><div class="acc-bd"><div class="src-blk"><div class="src-lbl">📺 NHK 政治</div><div class="card-grid"><div class="card" style="--ac:#C62828">
-  <div class="c-in ex" data-t="c19" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://news.web.nhk/newsweb/na/na-k10015149091000" target="_blank" rel="noopener" onclick="event.stopPropagation()">高市首相 G7サミットなどへ出発 “G7連携し課題対応を主導”</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#C62828">NHK 政治</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://news.web.nhk/newsweb/na/na-k10015149091000" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c19" hidden><p>（AI要約失敗）高市総理大臣はフランスで開催されるG7サミット＝主要7か国首脳会議などに出席するため13日午後、羽田空港を出発しました。これに先立ち記者団に対し、G7が連携して国際社会の課題への対応を主導していく姿勢…</p></div>
-</div><div class="card" style="--ac:#C62828">
-  <div class="c-in ex" data-t="c20" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://news.web.nhk/newsweb/na/na-k10015149141000" target="_blank" rel="noopener" onclick="event.stopPropagation()">小泉防衛相 インドネシアと軍事情報共有検討開始で一致</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#C62828">NHK 政治</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://news.web.nhk/newsweb/na/na-k10015149141000" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c20" hidden><p>（AI要約失敗）小泉防衛大臣は、12日、インドネシアでプラボウォ大統領やシャフリ国防相と会談し、機微な軍事情報の共有などに関する新たな協力の可能性について検討を開始することで一致しました。</p></div>
-</div><div class="card" style="--ac:#C62828">
-  <div class="c-in ex" data-t="c21" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://news.web.nhk/newsweb/na/na-k10015149071000" target="_blank" rel="noopener" onclick="event.stopPropagation()">東京 渋谷「旧こどもの城」含む都有地再整備 実施方針を策定</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#C62828">NHK 政治</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://news.web.nhk/newsweb/na/na-k10015149071000" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c21" hidden><p>東京都渋谷区の「旧こどもの城」を含む都有地の再整備に関する実施方針の策定について。</p>
-<ul>
-<li>NHKニュースが2026年6月13日に報じたところによると、東京都は、渋谷区にある「旧こどもの城」を含む周辺の都有地の再整備に向けた実施方針を策定しました。</li>
-<li>再整備の対象となる「旧こどもの城」は、11年前に閉館した施設であり、その跡地を含む都有地一帯が大規模な開発の対象となります。</li>
-<li>策定された実施方針には、今後実施される事業者の公募において、図書館や劇場の整備などを求める条件が具体的に盛り込まれています。</li>
-<li>このプロジェクトは、東京都渋谷区という都心の一等地における大規模な都市開発であり、新たな文化・教育施設の創出を通じて地域の活性化を目指します。</li>
-<li>地方自治への影響として、東京都が主導するこの再整備は、渋谷区の都市計画に大きな影響を与え、地域の魅力向上や新たな賑わいの創出に貢献することが期待されます。</li>
-<li>住民生活への影響としては、整備される図書館や劇場は、渋谷区民のみならず都民全体の文化・教育活動の拠点となり、利便性の向上や交流機会の増加をもたらす一方で、建設期間中の交通渋滞や騒音などへの対策が重要となります。</li>
-<li>財政面では、事業者の公募を通じて民間資金の活用が図られる見込みですが、東京都の財政負担や、整備後の施設の運営・維持管理にかかる費用、そして新たな施設による税収増の可能性も考慮されるべき重要な要素です。</li>
-<li>選挙においては、この大規模な都有地再整備プロジェクトの進捗状況や具体的な内容が、都知事選挙、東京都議会議員選挙、渋谷区議会議員選挙における主要な政策論点の一つとなり、候補者は施設の機能、利用料金、アクセス、周辺環境への配慮などについて明確な見解を示すことが求められます。</li>
-</ul></div>
-</div></div><div class="lbox"><div class="lrow"><a href="https://news.web.nhk/newsweb/na/na-k10015148781000" target="_blank" rel="noopener">高市首相 重要鉱物「共同備蓄連携構想」提案へ G7サミット</a><span class="ldesc">高市総理大臣は来週、フランスで開かれるG7サミットで、各国がレアアースなどの重要鉱物を備蓄する制度を導入するのを日本が支…</span></div><div class="lrow"><a href="https://news.web.nhk/newsweb/na/na-k10015148791000" target="_blank" rel="noopener">食料品の消費税減税 実務者会議で議論が本格化する見通し</a><span class="ldesc">食料品の消費税減税をめぐり超党派の「国民会議」は中間とりまとめに税率や実施時期などを盛り込みたいとしていて、来週以降、実…</span></div><div class="lrow"><a href="https://news.web.nhk/newsweb/na/na-k10015148921000" target="_blank" rel="noopener">維新 藤田共同代表の皇室典範の改正などめぐる発言に野党反発</a><span class="ldesc">安定的な皇位継承をめぐり、日本維新の会の藤田共同代表は皇室典範の改正などについて、高市総理大臣からまず与党で制度設計を詰…</span></div><div class="lrow"><a href="https://news.web.nhk/newsweb/na/na-k10015148871000" target="_blank" rel="noopener">日中友好団体が代表団の訪中を延期に 会長の河野洋平氏死去で</a><span class="ldesc">日中友好団体の1つで、今月、亡くなった河野洋平元衆議院議長が会長を務めていた「日本国際貿易促進協会」は、今月下旬に予定し…</span></div><div class="lrow"><a href="https://news.web.nhk/newsweb/na/na-k10015148831000" target="_blank" rel="noopener">茂木外相 タイ外相と会談 エネルギー分野など協力で一致</a><span class="ldesc">茂木外務大臣は日本を訪れているタイのシーハサック外相と会談し、エネルギーや資源のサプライチェーンの強じん化に向けて協力す…</span></div><div class="lrow"><a href="https://news.web.nhk/newsweb/na/na-k10015148841000" target="_blank" rel="noopener">参政・みらい 企業・団体献金見直しに向け 禁止法案を共同提出</a><span class="ldesc">企業・団体献金の見直しに向けて、参政党とチームみらいは企業や労働組合からの寄付やパーティー券の購入を全面的に禁止する法案…</span></div><div class="lrow"><a href="https://news.web.nhk/newsweb/na/na-k10015148511000" target="_blank" rel="noopener">高市首相 維新 藤田共同代表らと会談 定数削減法案など成立を</a><span class="ldesc">高市総理大臣は、日本維新の会の藤田共同代表らと会談し、連立合意に盛り込まれた衆議院議員の定数を削減する法案や「副首都」構…</span></div><div class="lrow"><a href="https://news.web.nhk/newsweb/na/na-k10015148821000" target="_blank" rel="noopener">政府 知的財産推進計画を決定 権利侵害の新たな救済措置を検討</a><span class="ldesc">政府はことしの「知的財産推進計画」を決定しました。漫画やアニメなどをインターネット上に無断で公開する「海賊版サイト」の被…</span></div><div class="lrow"><a href="https://news.web.nhk/newsweb/na/na-k10015148761000" target="_blank" rel="noopener">高市首相 自民小野寺氏と会談 消費税減税めぐり意見交換</a><span class="ldesc">食料品の消費税減税をめぐり、高市総理大臣は12日、自民党の小野寺税制調査会長と会談しました。超党派の「国民会議」の実務者…</span></div><div class="lrow"><a href="https://news.web.nhk/newsweb/na/na-k10015148501000" target="_blank" rel="noopener">再審制度の見直し 刑事訴訟法改正案が衆院法務委で可決</a><span class="ldesc">再審制度の見直しをめぐり、刑事訴訟法の改正案は衆議院法務委員会で採決が行われ、自民・維新両党と参政党の賛成多数で可決され…</span></div><div class="lrow"><a href="https://news.web.nhk/newsweb/na/na-k10015148631000" target="_blank" rel="noopener">高市首相 来月1日からインド訪問調整 モディ首相と首脳会談へ</a><span class="ldesc">高市総理大臣は、7月1日から3日間の日程で、インドの地方都市を訪問し、モディ首相と首脳会談を行う方向で調整しています。首…</span></div><div class="lrow"><a href="https://news.web.nhk/newsweb/na/na-k10015148461000" target="_blank" rel="noopener">自民 22日に参院予算委集中審議提案 立民“秘書参考人招致を”</a><span class="ldesc">参議院自民党と立憲民主党の国会対策委員長が会談し、自民党は、今月22日に参議院予算委員会で集中審議を行いたいと提案し、引…</span></div></div></div></div></details>
-</div>
 </div>
 
-<!-- 補助金・助成金タブ -->
-<div id="subsidy" class="tab-content">
-<div class="wrap">
-  <div class="sbar"><input class="sinput" type="search" placeholder="🔍 補助金名・対象を検索..." oninput="filt(this)" aria-label="検索"></div>
-  <p class="hint">中小企業庁・ミラサポplusの補助金・助成金情報 ／ タイトル行をタップして AI 要約を表示</p>
-  <details class="acc" open><summary class="acc-hd" style="--ac:#6D4C41"><span class="acc-lbl">💼 ミラサポplus</span><span class="acc-cnt">15件</span><span class="acc-chv">›</span></summary><div class="acc-bd"><div class="src-blk"><div class="src-lbl">💼 ミラサポplus</div><div class="card-grid"><div class="card" style="--ac:#6D4C41">
-  <div class="c-in ex" data-t="c22" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://mirasapo-plus.go.jp/infomation/32066/" target="_blank" rel="noopener" onclick="event.stopPropagation()">中東情勢等を踏まえた中小企業・小規模事業者向け支援について</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#6D4C41">ミラサポplus</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://mirasapo-plus.go.jp/infomation/32066/" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
+<!-- ── ボトムナビ ── -->
+<div class="bottomnav">
+  <div class="bnav-item active" onclick="sw('tab-hita',this)">
+    
+    <div class="bnav-icon">🏛️</div>
+    <div class="bnav-label">ひたちなか</div>
   </div>
-  <div class="c-body" id="c22" hidden><p>中東情勢等を踏まえた中小企業・小規模事業者向け支援策についての情報です</p>
-<ul>
-<li>経済産業省中小企業庁は、中東情勢、ウクライナ情勢、原油価格上昇の影響により資金繰りやコスト上昇等で困窮する中小企業・小規模事業者に対し、2026年6月12日時点で相談窓口の設置、資金繰り支援、設備投資支援等を実施しています。</li>
-<li>全国の日本政策金融公庫、沖縄振興開発金融公庫、商工組合中央金庫、信用保証協会、中小企業活性化協議会、商工会議所、商工会連合会、中小企業団体中央会、よろず支援拠点、全国商店街振興組合連合会、中小企業基盤整備機構各地域本部、各地方経済産業局に「中東・ウクライナ情勢・原油価格上昇等に関する特別相談窓口」が設置されており、令和8年6月1日より中小企業活性化協議会にも設置されます。</li>
-<li>金融支援として、日本政策金融公庫等が実施するセーフティネット貸付の要件を中東情勢により今後の影響が懸念される事業者まで拡大し、原油価格高騰等や中東情勢による取引・生産減少等の要件を満たす場合に金利引下げを実施しています。</li>
-<li>信用保証協会が通常の保証限度額とは別枠で80％保証を行うセーフティネット保証5号について、中東情勢の影響を踏まえた臨時の業況調査を行い、2026年7月1日（水曜日）に583業種を指定します（前回4月1日指定は520業種）。また、2026年6月11日（木）より事前相談を開始しています。</li>
-<li>全国47都道府県に設置されている中小企業活性化協議会において、中東情勢等により影響を受ける中小企業・小規模事業者の収益力改善、事業再生の取組を支援するとともに、関係省庁が官民金融機関等に対し、事業者支援の徹底を要請しています。</li>
-<li>関係省庁は、2026年3月27日および2026年4月13日に、関係業界団体、各府省庁等、地方公共団体に対し、原材料価格・エネルギーコスト上昇を踏まえた適切な価格転嫁、取引適正化を要請しており、特に発注者に対し特段の配慮を求めています。</li>
-<li>地方自治体は、特別相談窓口の周知やセーフティネット保証5号の認定業務を通じて、地域の中小企業・小規模事業者の経営安定を支援する役割が求められます。これにより、地域経済の基盤である中小企業の雇用維持や地域サービスの継続が図られ、住民の生活不安の軽減に寄与します。選挙においては、物価高騰やエネルギー価格上昇に苦しむ事業者への具体的な支援策として、候補者が有権者にアピールできる重要なポイントとなります。財政面では、中小企業の倒産防止は税収減や失業給付増といった財政負担の悪化を</li>
-</ul></div>
-</div><div class="card" style="--ac:#6D4C41">
-  <div class="c-in ex" data-t="c23" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://mirasapo-plus.go.jp/infomation/32614/" target="_blank" rel="noopener" onclick="event.stopPropagation()">中小企業庁担当者に聞く「生産性向上支援センター」</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#6D4C41">ミラサポplus</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://mirasapo-plus.go.jp/infomation/32614/" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
+  <div class="bnav-item" onclick="sw('tab-ibaraki',this)">
+    <div class="bnav-icon">🗞️</div>
+    <div class="bnav-label">茨城</div>
   </div>
-  <div class="c-body" id="c23" hidden><p>（情報取得中）</p></div>
-</div><div class="card" style="--ac:#6D4C41">
-  <div class="c-in ex" data-t="c24" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://mirasapo-plus.go.jp/hint/32605/" target="_blank" rel="noopener" onclick="event.stopPropagation()">中小企業庁担当者に聞く | 業務の改善支援で、人手不足の解決につなげる「生産性向上支援センター」</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#6D4C41">ミラサポplus</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://mirasapo-plus.go.jp/hint/32605/" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
+  <div class="bnav-item" onclick="sw('tab-national',this)">
+    <div class="bnav-icon">🏢</div>
+    <div class="bnav-label">国政・国会</div>
   </div>
-  <div class="c-body" id="c24" hidden><p>（AI要約失敗）このページでわかること 生産性向上支援センターの目的 センターの具体的な支援内容 センターの申込から支援までの流れ 深刻な人手不足が続くなかで、中小企業・小規模事業者では、限られた人員で業務を回し、生産性を高めていくこと [&amp;#8230;]</p></div>
-</div><div class="card" style="--ac:#6D4C41">
-  <div class="c-in ex" data-t="c25" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://mirasapo-plus.go.jp/infomation/32507/" target="_blank" rel="noopener" onclick="event.stopPropagation()">省力化投資補助金（一般型）第5回公募の補助金交付候補者を採択</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#6D4C41">ミラサポplus</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://mirasapo-plus.go.jp/infomation/32507/" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
+  <div class="bnav-item" onclick="sw('tab-subsidy',this)">
+    <div class="bnav-badge">16</div>
+    <div class="bnav-icon">💰</div>
+    <div class="bnav-label">補助金</div>
   </div>
-  <div class="c-body" id="c25" hidden><p>経済産業省中小企業庁による省力化投資補助金（一般型）第5回公募の補助金交付候補者採択に関する情報です。</p>
-<ul>
-<li>経済産業省中小企業庁は、省力化投資補助金（一般型）の第5回公募において、補助金交付候補者1,251者を採択しました。</li>
-<li>この公募は、令和7年12月19日（金）から令和8年2月27日（金）までの期間に実施され、合計2,035者からの応募がありました。</li>
-<li>採択結果は2026年06月05日に発表され、最終更新日は2026年06月04日です。</li>
-<li>本補助金は、中小企業の生産性向上や人手不足解消を目的とした省力化投資を支援するもので、中小企業省力化投資補助事業事務局が詳細情報を提供しています。</li>
-<li>地方自治体にとっては、地域の中小企業がこの補助金を活用することで、生産性向上や労働力不足の解消が進み、地域経済の活性化に繋がる重要な機会となります。</li>
-<li>住民生活においては、地域の中小企業が効率化されることで、提供される商品やサービスの質向上、安定供給、価格維持に寄与する可能性があります。</li>
-<li>地方議員候補者にとっては、地域の中小企業への支援策として本補助金の活用を促進し、地域経済の持続的な発展を公約に掲げることで、有権者からの支持を得るための重要な政策アピールポイントとなります。</li>
-</ul></div>
-</div></div><div class="lbox"><div class="lrow"><a href="https://mirasapo-plus.go.jp/infomation/32495/" target="_blank" rel="noopener">【補助金】省力化投資補助事業（一般型）の第7回公募要領を公開【7月上旬申請受付開始、7月下旬申請締切、11月中旬採択発表予定】</a><span class="ldesc">事業者のみなさま &amp;#160; 中小企業庁です。 &amp;#160; 本日、省力化投資補助金（一般型）の第7回公募要領を公開し…</span></div><div class="lrow"><a href="https://mirasapo-plus.go.jp/infomation/32472/" target="_blank" rel="noopener">【補助金】日本発の優れたコンテンツ（アニメ、実写映像、音楽、ゲームなど）を世界へ</a><span class="ldesc">事業者のみなさま &amp;#160; 経済産業省・中小企業庁です。 &amp;#160; 日本発の優れたコンテンツ（アニメ、実写映像、…</span></div><div class="lrow"><a href="https://mirasapo-plus.go.jp/infomation/32451/" target="_blank" rel="noopener">「2026年版ものづくり白書」を取りまとめました</a><span class="ldesc">事業者のみなさま &amp;#160; 経済産業省・中小企業庁です。 &amp;#160; 「2026年版ものづくり白書」を取りまとめま…</span></div><div class="lrow"><a href="https://mirasapo-plus.go.jp/infomation/32430/" target="_blank" rel="noopener">「はばたく中小企業・小規模事業者300社」を選定しました</a><span class="ldesc">事業者のみなさま &amp;#160; 中小企業庁です。 &amp;#160; 中小企業庁は、経済社会構造の変化に対応して事業変革や新規…</span></div><div class="lrow"><a href="https://mirasapo-plus.go.jp/infomation/32394/" target="_blank" rel="noopener">【補助金】持続化補助金＜創業型＞（第4回）の公募要領を公開【申請受付期間：11/5～12/15】</a><span class="ldesc">&amp;#160; 事業者のみなさま &amp;#160; 中小企業庁です。 &amp;#160; 本日、「持続化補助金＜創業型＞（第4回）」…</span></div><div class="lrow"><a href="https://mirasapo-plus.go.jp/infomation/32381/" target="_blank" rel="noopener">【補助金】持続化補助金＜一般型・通常枠＞（第20回）の公募要領を公開【申請受付期間：11/5～12/15】</a><span class="ldesc">事業者のみなさま &amp;#160; 中小企業庁です。 &amp;#160; 本日、「持続化補助金＜一般型・通常枠＞（第20回）」の公…</span></div><div class="lrow"><a href="https://mirasapo-plus.go.jp/infomation/32326/" target="_blank" rel="noopener">経済産業省「国際化促進インターンシップ事業」参加企業を募集中！</a><span class="ldesc">経済産業省「国際化促進インターンシップ事業」参加企業を募集中！ ～世界の優秀な人材との協働で、企業の成長・海外展開を後押…</span></div><div class="lrow"><a href="https://mirasapo-plus.go.jp/infomation/32364/" target="_blank" rel="noopener">2026年版「中小企業白書」・「小規模企業白書」の解説動画を公開</a><span class="ldesc">事業者のみなさま &amp;#160; 中小企業庁です。 &amp;#160; 2026年版「中小企業白書」および「小規模企業白書」の解…</span></div><div class="lrow"><a href="https://mirasapo-plus.go.jp/infomation/32263/" target="_blank" rel="noopener">【補助金】新事業進出補助金の第４回公募の申請受付を開始しました【申請受付期間：5/19～6/19】</a><span class="ldesc">事業者のみなさま &amp;#160; 中小企業庁です。 &amp;#160; 本日、新事業進出補助金の第４回公募の申請受付を開始しまし…</span></div><div class="lrow"><a href="https://mirasapo-plus.go.jp/infomation/32238/" target="_blank" rel="noopener">持続化補助金・優良事例発表会を開催します</a><span class="ldesc">事業者のみなさま &amp;#160; 中小企業庁です。 &amp;#160; 中小企業庁は、「持続化補助金」を活用して特に効果的に販路…</span></div><div class="lrow"><a href="https://mirasapo-plus.go.jp/infomation/32215/" target="_blank" rel="noopener">【補助金】商用車等の電動化促進事業 （トラック、タクシー・バス）」の公募について</a><span class="ldesc">事業者のみなさま &amp;#160; 中小企業庁です。 &amp;#160; 「燃料費の高騰もあり、プラグインハイブリッド車などへの買…</span></div></div></div></div></details><details class="acc"><summary class="acc-hd" style="--ac:#8D6E63"><span class="acc-lbl">🔗 省庁フィルタ</span><span class="acc-cnt">1件</span><span class="acc-chv">›</span></summary><div class="acc-bd"><div class="src-blk"><div class="src-lbl">🔗 関連情報（省庁フィルタ）</div><div class="card-grid"><div class="card" style="--ac:#8D6E63">
-  <div class="c-in ex" data-t="c26" onclick="tgl(this)">
-    <div class="c-ttl"><a href="https://www.soumu.go.jp/main_sosiki/joho_tsusin/policyreports/joho_tsusin/usf_seisaku/02kiban02_04000894.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">情報通信審議会　電気通信事業政策部会　ユニバーサルサービス政策委員会（第53回）・ユニバーサルサービス制度における交付金・負担金の算定等に関するワーキンググループ（第10回） 合同会合</a></div>
-    <div class="c-ft">
-      <span class="chip" style="--cc:#8D6E63">関連情報（省庁フィルタ）</span><span class="ai-tag">✦ AI要約</span>
-      <div class="c-acts"><span class="exp-btn"><span class="chv">›</span>要約</span><a href="https://www.soumu.go.jp/main_sosiki/joho_tsusin/policyreports/joho_tsusin/usf_seisaku/02kiban02_04000894.html" target="_blank" rel="noopener" class="out-btn" onclick="event.stopPropagation()">↗</a></div>
-    </div>
-  </div>
-  <div class="c-body" id="c26" hidden><p>総務省の情報通信審議会電気通信事業政策部会ユニバーサルサービス政策委員会とユニバーサルサービス制度における交付金・負担金の算定等に関するワーキンググループの合同会合開催に関する情報です。</p>
-<ul>
-<li>総務省は、情報通信審議会電気通信事業政策部会ユニバーサルサービス政策委員会（第53回）とユニバーサルサービス制度における交付金・負担金の算定等に関するワーキンググループ（第10回）の合同会合を、令和8年6月12日（金）17時00分からWeb会議形式で開催します。</li>
-<li>本会合の主な議題は、「新たなユニバーサルサービス制度に対応した交付金制度の在り方に係る検討の方向性」と「意見交換」の2点です。</li>
-<li>ユニバーサルサービス制度は、全国どこでも公平に利用できる電気通信サービス（固定電話、公衆電話など）を維持するため、電気通信事業者が負担金を支払い、提供事業者に交付金を交付する仕組みです。</li>
-<li>地方自治体にとって、この制度は過疎地域や離島を含む全ての地域住民が基本的な通信サービスを利用できる環境を保障する上で不可欠であり、デジタルデバイド解消に向けた重要な政策基盤となります。</li>
-<li>住民生活への影響として、新たな制度の検討は将来的にブロードバンドサービスなど、より広範な通信サービスが対象となる可能性があり、地域住民の情報格差是正や生活の質の向上に直結します。</li>
-<li>地方議員候補者にとっては、地域住民の通信環境改善や情報格差解消は重要な公約となり、ユニバーサルサービス制度の動向を注視し、地域の実情に応じた政策提言を行うことが求められます。</li>
-<li>本制度は電気通信事業者の負担金で運営されるため、地方自治体の直接的な財政負担はありませんが、制度変更が通信料金に影響を及ぼし、間接的に住民の家計に影響を与える可能性があります。</li>
-</ul></div>
-</div></div></div></div></details>
-</div>
 </div>
 
-<!-- 国会会議録タブ -->
-<div id="kokkai" class="tab-content">
-<div class="wrap">
-  <div class="sbar"><input class="sinput" type="search" placeholder="🔍 このタブ内を検索..." oninput="filt(this)" aria-label="検索"></div>
-  <div class="sh" style="color:#0D9488">
-    <h2>📜 国会会議録（過去14日間）</h2>
-    <span class="sc" style="background:#0D9488">0</span>
-  </div>
-  <p class="hint">キーワード: ひたちなか / 那珂湊 / 茨城県 地方自治</p>
-  <p class="empty">過去14日間のひたちなか・茨城関連発言はありません</p>
-</div>
-</div>
-
-<footer>
-  <div>自動生成ダッシュボード &nbsp;|&nbsp; 2026年06月13日 17:39 JST &nbsp;|&nbsp; Powered by Gemini Flash</div>
-  <div style="margin-top:8px">
-    <a href="https://www.city.hitachinaka.lg.jp/" target="_blank">ひたちなか市</a> ·
-    <a href="https://ibarakinews.jp/" target="_blank">茨城新聞</a> ·
-    <a href="https://www.pref.ibaraki.jp/" target="_blank">茨城県</a> ·
-    <a href="https://www.kantei.go.jp/" target="_blank">首相官邸</a> ·
-    <a href="https://www.soumu.go.jp/" target="_blank">総務省</a> ·
-    <a href="https://www.chusho.meti.go.jp/" target="_blank">中小企業庁</a> ·
-    <a href="https://mirasapo-plus.go.jp/" target="_blank">ミラサポplus</a>
-  </div>
-</footer>
+<!-- ── FAB ── -->
+<div class="fab" id="fab" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</div>
 
 <script>
-var TABS = ['hitachinaka','ibaraki','pref','national','subsidy','kokkai'];
-
-function sw(id, btn) {
+function sw(id,btn){
   document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});
-  document.querySelectorAll('.tbtn').forEach(function(b){b.classList.remove('active')});
+  document.querySelectorAll('.bnav-item').forEach(function(b){b.classList.remove('active')});
   document.getElementById(id).classList.add('active');
   btn.classList.add('active');
-  location.hash = id;
+  window.scrollTo({top:0,behavior:'smooth'});
+  location.hash=id;
 }
-
 (function(){
-  var h = location.hash.replace('#','');
-  if(!h) return;
-  var el = document.getElementById(h);
-  if(!el) return;
+  var h=location.hash.replace('#','');
+  var ids=['tab-hita','tab-ibaraki','tab-national','tab-subsidy'];
+  var idx=ids.indexOf(h);
+  if(idx<0)return;
   document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});
-  document.querySelectorAll('.tbtn').forEach(function(b){b.classList.remove('active')});
-  el.classList.add('active');
-  var idx = TABS.indexOf(h);
-  if(idx >= 0) document.querySelectorAll('.tbtn')[idx].classList.add('active');
+  document.querySelectorAll('.bnav-item').forEach(function(b){b.classList.remove('active')});
+  document.getElementById(h).classList.add('active');
+  document.querySelectorAll('.bnav-item')[idx].classList.add('active');
 })();
-
-function tgl(head) {
-  var id = head.dataset.t;
-  var body = document.getElementById(id);
-  var isHidden = body.hidden;
-  body.hidden = !isHidden;
-  head.classList.toggle('expanded', isHidden);
-}
-
-function filt(input) {
-  var q = input.value.toLowerCase().trim();
-  var wrap = input.closest('.wrap');
-  wrap.querySelectorAll('.card,.lrow,.acc').forEach(function(el) {
-    el.style.display = (!q || el.textContent.toLowerCase().includes(q)) ? '' : 'none';
-  });
-}
+window.addEventListener('scroll',function(){
+  document.getElementById('fab').classList.toggle('show',window.scrollY>200);
+});
 </script>
 </body>
 </html>
