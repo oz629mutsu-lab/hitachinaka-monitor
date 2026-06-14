@@ -151,7 +151,7 @@ def fetch_pdf(pdf_url, max_bytes=4_000_000):
 
 
 def groq_call(system, user, max_tokens=900, label=""):
-    for attempt in range(5):
+    for attempt in range(3):
         try:
             res = requests.post(
                 "https://api.groq.com/openai/v1/chat/completions",
@@ -167,11 +167,11 @@ def groq_call(system, user, max_tokens=900, label=""):
                 return data["choices"][0]["message"]["content"]
             err = data.get("error",{}).get("message", str(data))
             wait = re.search(r"try again in ([\d.]+)s", err)
-            wait_sec = float(wait.group(1)) + 3 if wait else 30
+            wait_sec = min(float(wait.group(1)) + 3, 60) if wait else 30
             print(f"  Groq待機{label}(試行{attempt+1}): {wait_sec:.0f}秒")
             time.sleep(wait_sec)
         except Exception as e:
-            print(f"  Groq例外{label}(試行{attempt+1}): {e}"); time.sleep(15)
+            print(f"  Groq例外{label}(試行{attempt+1}): {e}"); time.sleep(10)
     return ""
 
 
