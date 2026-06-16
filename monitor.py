@@ -16,7 +16,7 @@ LINE_TOKEN      = os.environ.get("LINE_TOKEN", "")
 LINE_USER_ID    = os.environ.get("LINE_USER_ID", "")
 GROQ_API_KEY    = os.environ.get("GROQ_API_KEY", "")
 GEMINI_API_KEY  = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_URL      = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+GEMINI_URL      = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 STATE_FILE      = Path("seen.json")
 SEEN_EXPIRE_DAYS = 30
 HTML_FILE       = Path("docs/index.html")
@@ -150,7 +150,17 @@ def fetch_pdf(pdf_url, max_bytes=4_000_000):
         print(f"  PDF取得失敗: {e}"); return ""
 
 
+_gemini_quota_exceeded = False
+_groq_call_count = 0
+GROQ_MAX_CALLS = 12
+
+
 def groq_call(system, user, max_tokens=900, label=""):
+    global _groq_call_count
+    if _groq_call_count >= GROQ_MAX_CALLS:
+        print(f"  Groq上限({GROQ_MAX_CALLS}回)到達 → スキップ{label}")
+        return ""
+    _groq_call_count += 1
     for attempt in range(3):
         try:
             res = requests.post(
@@ -176,7 +186,12 @@ def groq_call(system, user, max_tokens=900, label=""):
 
 
 def gemini_call(system, user, max_tokens=900, label=""):
-    """Gemini Flash (無料 1M TPM)。失敗時のみGroqにフォールバック"""
+    """Gemini Flash (無料 1500 RPD)。クォータ超過を検知したら即Groqへ切替"""
+    global _gemini_quota_exceeded
+    if _gemini_quota_exceeded:
+        if GROQ_API_KEY:
+            return groq_call(system, user, max_tokens=max_tokens, label=label)
+        return ""
     for attempt in range(3):
         try:
             payload = {
@@ -192,6 +207,12 @@ def gemini_call(system, user, max_tokens=900, label=""):
             if "candidates" in data:
                 return data["candidates"][0]["content"]["parts"][0]["text"]
             err = data.get("error", {}).get("message", str(data))
+            if "quota" in err.lower() or "RESOURCE_EXHAUSTED" in err:
+                _gemini_quota_exceeded = True
+                print(f"  Geminiクォータ超過 → 以降Groqへ切替{label}")
+                if GROQ_API_KEY:
+                    return groq_call(system, user, max_tokens=max_tokens, label=label)
+                return ""
             print(f"  Geminiエラー{label}(試行{attempt+1}): {err[:120]}")
             time.sleep(5)
         except Exception as e:
