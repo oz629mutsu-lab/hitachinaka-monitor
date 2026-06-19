@@ -20,6 +20,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GOOGLE_ALERT_RSS_URLS: ${{ secrets.GOOGLE_ALERT_RSS_URLS }}
+          PYTHONUNBUFFERED: "1"
         run: python3 monitor.py
       - name: 生成ファイルをコミット
         run: |

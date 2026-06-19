@@ -186,11 +186,9 @@ def groq_call(system, user, max_tokens=900, label=""):
 
 
 def gemini_call(system, user, max_tokens=900, label=""):
-    """Gemini Flash (無料 1500 RPD)。クォータ超過を検知したら即Groqへ切替"""
+    """Gemini Flash (無料 1500 RPD)。クォータ超過時はスキップして即リターン"""
     global _gemini_quota_exceeded
     if _gemini_quota_exceeded:
-        if GROQ_API_KEY:
-            return groq_call(system, user, max_tokens=max_tokens, label=label)
         return ""
     for attempt in range(3):
         try:
@@ -209,14 +207,12 @@ def gemini_call(system, user, max_tokens=900, label=""):
             err = data.get("error", {}).get("message", str(data))
             if "quota" in err.lower() or "RESOURCE_EXHAUSTED" in err:
                 _gemini_quota_exceeded = True
-                print(f"  Geminiクォータ超過 → 以降Groqへ切替{label}")
-                if GROQ_API_KEY:
-                    return groq_call(system, user, max_tokens=max_tokens, label=label)
+                print(f"  Geminiクォータ超過 → 今日は要約なしで続行{label}", flush=True)
                 return ""
-            print(f"  Geminiエラー{label}(試行{attempt+1}): {err[:120]}")
+            print(f"  Geminiエラー{label}(試行{attempt+1}): {err[:120]}", flush=True)
             time.sleep(5)
         except Exception as e:
-            print(f"  Gemini例外{label}(試行{attempt+1}): {e}"); time.sleep(5)
+            print(f"  Gemini例外{label}(試行{attempt+1}): {e}", flush=True); time.sleep(5)
     if GROQ_API_KEY:
         print(f"  Gemini全失敗 → Groqフォールバック{label}")
         return groq_call(system, user, max_tokens=max_tokens, label=label)
