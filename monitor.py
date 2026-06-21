@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ひたちなか市ホームページ監視スクリプト v10.0 (Gemini Flash AI・seen.json TTL追加)"""
 
-import json, os, urllib.request, xml.etree.ElementTree as ET, io, re, time
+import json, os, urllib.request, urllib.parse, xml.etree.ElementTree as ET, io, re, time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from html.parser import HTMLParser
@@ -426,9 +426,10 @@ def fetch_kokkai_speeches(days_back=14):
 # ===== 国政・県政 RSS =====
 
 def fetch_generic_rss(url, max_items=15):
-    """汎用RSSフェッチ。RSS 1.0(名前空間あり)・RSS 2.0・Shift_JIS に対応"""
+    """汎用RSSフェッチ。RSS 1.0/2.0・Atom・Shift_JIS に対応"""
     RSS1 = "http://purl.org/rss/1.0/"
     DC   = "http://purl.org/dc/elements/1.1/"
+    ATOM = "http://www.w3.org/2005/Atom"
 
     def ft(elem, tag):
         return (elem.findtext(tag) or
@@ -446,6 +447,28 @@ def fetch_generic_rss(url, max_items=15):
                 decoded = raw.decode(enc, errors='replace')
                 raw = re.sub(r'encoding=["\'][^"\']+["\']', 'encoding="utf-8"', decoded).encode('utf-8')
         root = ET.fromstring(raw)
+
+        # Atom フィード（Google アラート等）
+        atom_entries = root.findall(f"{{{ATOM}}}entry")
+        if atom_entries:
+            items = []
+            for e in atom_entries[:max_items]:
+                title_el = e.find(f"{{{ATOM}}}title")
+                title = re.sub(r'<[^>]+>', '', title_el.text or "").strip() if title_el is not None else ""
+                link_el = e.find(f"{{{ATOM}}}link")
+                link = link_el.get("href", "") if link_el is not None else ""
+                # Google アラートのリンクは Google リダイレクト経由 → 実URLを抽出
+                m = re.search(r'url=([^&]+)', link)
+                if m:
+                    link = urllib.parse.unquote(m.group(1))
+                updated_el = e.find(f"{{{ATOM}}}updated")
+                pub_date = updated_el.text or "" if updated_el is not None else ""
+                content_el = e.find(f"{{{ATOM}}}content") or e.find(f"{{{ATOM}}}summary")
+                desc = re.sub(r'<[^>]+>', '', content_el.text or "").strip()[:300] if content_el is not None else ""
+                if title:
+                    items.append({"title": title, "link": link, "pub_date": pub_date, "description": desc})
+            return items
+
         # RSS 2.0 は <item>、RSS 1.0 は {RSS1}item
         elems = root.findall(".//item") or root.findall(f".//{{{RSS1}}}item")
         items = []
