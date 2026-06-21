@@ -37,10 +37,11 @@ IBARAKI_PREF_RSS = [
     ("茨城県 注目情報",  "https://www.pref.ibaraki.jp/chumoku.xml"),
     ("茨城県 防災情報",  "https://www.pref.ibaraki.jp/bousai/bousai_rss.xml"),
 ]
-KANTEI_RSS_URL = "https://www.kantei.go.jp/index-jnews.rdf"
-SOUMU_RSS_URL  = "https://www.soumu.go.jp/news.rdf"
-CAO_RSS_URL    = "https://www.cao.go.jp/bunken-suishin/rss/news.rdf"
-MAFF_RSS_URL   = "https://www.maff.go.jp/rss.xml"
+CCI_RSS_URL       = "https://www.hitachinaka-cci.or.jp/feed/"
+KANTEI_RSS_URL    = "https://www.kantei.go.jp/index-jnews.rdf"
+SOUMU_RSS_URL     = "https://www.soumu.go.jp/news.rdf"
+CAO_RSS_URL       = "https://www.cao.go.jp/bunken-suishin/rss/news.rdf"
+MAFF_RSS_URL      = "https://www.maff.go.jp/rss.xml"
 NHK_SEIJI_RSS_URL = "https://www.nhk.or.jp/rss/news/cat4.xml"
 # Googleアラート: 環境変数 GOOGLE_ALERT_RSS_URLS にカンマ区切りでURLを設定
 GOOGLE_ALERT_RSS_URLS = [u.strip() for u in os.environ.get("GOOGLE_ALERT_RSS_URLS","").split(",") if u.strip()]
@@ -755,7 +756,8 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,  # noqa:
                ibaraki_local_cards=None, ibaraki_digest="", ibaraki_all=None,
                national_sources=None, national_cards_by_source=None,
                kokkai_speeches=None,
-               subsidy_sources=None, subsidy_cards_by_source=None):
+               subsidy_sources=None, subsidy_cards_by_source=None,
+               cci_cards=None):
     jst = generated_at + timedelta(hours=9)
     date_str = jst.strftime("%-m月%-d日（%a）")
 
@@ -764,7 +766,7 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,  # noqa:
     govt_sources  = [s for s in (national_sources or []) if s["name"] not in PREF_NAMES]
 
     cnt_priority = len(gikai_cards) + len(important_cards)
-    cnt_hita  = cnt_priority + len(minor_items)
+    cnt_hita  = cnt_priority + len(minor_items) + len(cci_cards or [])
     cnt_ib    = len(ibaraki_local_cards or []) + len(ibaraki_all or [])
     cnt_nat   = sum(len(s["items"]) for s in govt_sources) + len(kokkai_speeches or [])
     cnt_sub   = sum(len(s["items"]) for s in (subsidy_sources or []))
@@ -858,6 +860,11 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,  # noqa:
         for i in minor_items:
             hita_html += art_row(i["title"], i["link"], "🏛️ 市公式")
 
+    if cci_cards:
+        hita_html += sec_div("ひたちなか商工会議所")
+        for c in cci_cards:
+            hita_html += art_row(c["title"], c["link"], "🏢 商工会議所")
+
     if not hita_html:
         hita_html = empty_msg("本日のひたちなか市情報はありません")
 
@@ -938,9 +945,9 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,  # noqa:
 
     nat_top_link = nat_top["link"] if nat_top else ""
     GOVT_GROUPS_DEF = [
-        ("官邸・総務・内閣府",       ["首相官邸","総務省","内閣府 地方分権改革"]),
+        ("NHK政治ニュース",              ["NHK 政治"]),
+        ("官邸・総務・内閣府",           ["首相官邸","総務省","内閣府 地方分権改革"]),
         ("省庁（農水・国交・厚労・環境）", ["農林水産省","国土交通省","厚生労働省","環境省"]),
-        ("NHK政治",                   ["NHK 政治"]),
     ]
     for grp_label, src_names in GOVT_GROUPS_DEF:
         grp_html = ""
@@ -1297,6 +1304,20 @@ def main():
     gikai_cards     = all_cards[:len(gikai)]
     important_cards = all_cards[len(gikai):]
 
+    # ===== ひたちなか商工会議所 =====
+    print("ひたちなか商工会議所 RSS取得中...")
+    cci_cards = []
+    try:
+        cci_items = fetch_generic_rss(CCI_RSS_URL, max_items=10)
+        cci_new = [i for i in cci_items if i["link"] not in seen]
+        for item in cci_new:
+            mark_seen(item["link"], seen)
+            cci_cards.append({"title": item["title"], "link": item["link"],
+                               "summary": "", "summary_html": "", "label": "商工会議所"})
+        print(f"  商工会議所: {len(cci_cards)}件（新着）")
+    except Exception as e:
+        print(f"  商工会議所取得失敗: {e}")
+
     # ===== 茨城新聞 =====
     print("茨城新聞を取得中...")
     ib_items = fetch_ibaraki_rss()
@@ -1415,7 +1436,8 @@ def main():
         ib_local_cards, ib_digest, ib_other,
         national_sources, national_cards_by_source,
         kokkai_speeches,
-        subsidy_sources, subsidy_cards_by_source
+        subsidy_sources, subsidy_cards_by_source,
+        cci_cards
     )
     HTML_FILE.write_text(html, encoding="utf-8")
     print(f"✓ {HTML_FILE} 生成完了")
