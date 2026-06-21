@@ -1,7 +1,5 @@
 name: ひたちなか市監視
 on:
-  schedule:
-    - cron: '0 21 * * *'
   workflow_dispatch:
 jobs:
   monitor:
