@@ -38,42 +38,9 @@ IBARAKI_PREF_RSS = [
     ("茨城県 防災情報",  "https://www.pref.ibaraki.jp/bousai/bousai_rss.xml"),
 ]
 CCI_RSS_URL       = "https://www.hitachinaka-cci.or.jp/feed/"
-KANTEI_RSS_URL    = "https://www.kantei.go.jp/index-jnews.rdf"
-SOUMU_RSS_URL     = "https://www.soumu.go.jp/news.rdf"
-CAO_RSS_URL       = "https://www.cao.go.jp/bunken-suishin/rss/news.rdf"
-MAFF_RSS_URL      = "https://www.maff.go.jp/rss.xml"
 NHK_SEIJI_RSS_URL = "https://www.nhk.or.jp/rss/news/cat4.xml"
 # Googleアラート: 環境変数 GOOGLE_ALERT_RSS_URLS にカンマ区切りでURLを設定
 GOOGLE_ALERT_RSS_URLS = [u.strip() for u in os.environ.get("GOOGLE_ALERT_RSS_URLS","").split(",") if u.strip()]
-
-# 補助金・助成金 RSS
-SUBSIDY_RSS_SOURCES = [
-    ("中小企業庁",  "https://www.chusho.meti.go.jp/rss/index.xml"),
-    ("ミラサポplus", "https://mirasapo-plus.go.jp/feed/"),
-]
-SUBSIDY_KEYWORDS = ["補助金", "助成金", "給付金", "支援金", "交付金", "融資", "補助", "助成", "給付"]
-
-# 省庁スクレイピング設定（月別プレスリリースページ）
-MINISTRY_SCRAPE_SOURCES = [
-    {
-        "name": "国土交通省",
-        "url_template": "https://www.mlit.go.jp/report/press/houdou{yyyymm}.html",
-        "base_url": "https://www.mlit.go.jp",
-        "link_pattern": r'/report/press/[a-z]+\d{2}_hh_\d+\.html',
-    },
-    {
-        "name": "厚生労働省",
-        "url_template": "https://www.mhlw.go.jp/stf/houdou/houdou_list_{yyyymm}.html",
-        "base_url": "https://www.mhlw.go.jp",
-        "link_pattern": r'/stf/houdou/(?:\d{7,}|newpage_\d+|0000[\w_]+)\.html',
-    },
-    {
-        "name": "環境省",
-        "url_template": "https://www.env.go.jp/press/{yyyymm}.html",
-        "base_url": "https://www.env.go.jp",
-        "link_pattern": r'/press/press_\d+\.html',
-    },
-]
 
 # 国会会議録 検索キーワード
 KOKKAI_KEYWORDS = ["ひたちなか", "那珂湊", "茨城県 地方自治"]
@@ -408,41 +375,6 @@ def ai_digest_ibaraki(articles_with_desc):
 
 # ===== 省庁スクレイピング =====
 
-def fetch_scraped_ministry(source_cfg, seen=None, max_items=12):
-    """月別プレスリリースページをスクレイピングし、新着記事を返す"""
-    now = datetime.now(timezone.utc) + timedelta(hours=9)
-    yyyymm = f"{now.year}{now.month:02d}"
-    url = source_cfg["url_template"].format(yyyymm=yyyymm)
-    base_url = source_cfg["base_url"]
-    pattern = source_cfg["link_pattern"]
-
-    try:
-        res = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=15)
-        res.encoding = res.apparent_encoding or "utf-8"
-        seen_links = set()
-        items = []
-        for m in re.finditer(rf'href="({pattern})"', res.text):
-            link_path = m.group(1)
-            full_link = base_url + link_path if not link_path.startswith("http") else link_path
-            if full_link in seen_links:
-                continue
-            seen_links.add(full_link)
-            if seen and full_link in seen:
-                continue
-            # タイトルを抽出（リンク直後のテキスト）
-            title_m = re.search(rf'href="{re.escape(link_path)}"[^>]*>([^<]{{5,}})', res.text)
-            title = re.sub(r'\s+', ' ', title_m.group(1)).strip() if title_m else ""
-            if len(title) < 5:
-                continue
-            items.append({"title": title, "link": full_link, "pub_date": "", "description": ""})
-            if len(items) >= max_items:
-                break
-        return items
-    except Exception as e:
-        print(f"  スクレイピング失敗 ({url[:55]}): {e}")
-        return []
-
-
 # ===== 国会会議録API =====
 
 def fetch_kokkai_speeches(days_back=14):
@@ -665,17 +597,8 @@ def process_national_batch(sources, ai_category="国政・県政"):
     SOURCE_CONFIG = {
         "茨城県 注目情報":  {"max_pdfs": 8,  "max_text": 5000},
         "茨城県 防災情報":  {"max_pdfs": 5,  "max_text": 4000},
-        "首相官邸":         {"max_pdfs": 3,  "max_text": 4000},
-        "総務省":           {"max_pdfs": 8,  "max_text": 4000},
-        "内閣府 地方分権改革": {"max_pdfs": 8, "max_text": 4000},
-        "農林水産省":       {"max_pdfs": 8,  "max_text": 4000},
         "NHK 政治":        {"max_pdfs": 0,  "max_text": 3000},
-        "国土交通省":       {"max_pdfs": 5,  "max_text": 4000},
-        "厚生労働省":       {"max_pdfs": 5,  "max_text": 4000},
-        "環境省":           {"max_pdfs": 3,  "max_text": 3000},
-        "中小企業庁":       {"max_pdfs": 2,  "max_text": 3000},
-        "ミラサポplus":     {"max_pdfs": 2,  "max_text": 3000},
-        "関連情報（省庁フィルタ）": {"max_pdfs": 2, "max_text": 3000},
+        "Googleアラート":  {"max_pdfs": 2,  "max_text": 3000},
     }
 
     print(f"  国政・県政 {len(all_items)}件 ページ取得中...")
@@ -756,7 +679,6 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,  # noqa:
                ibaraki_local_cards=None, ibaraki_digest="", ibaraki_all=None,
                national_sources=None, national_cards_by_source=None,
                kokkai_speeches=None,
-               subsidy_sources=None, subsidy_cards_by_source=None,
                cci_cards=None):
     jst = generated_at + timedelta(hours=9)
     date_str = jst.strftime("%-m月%-d日（%a）")
@@ -769,14 +691,10 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,  # noqa:
     cnt_hita  = cnt_priority + len(minor_items) + len(cci_cards or [])
     cnt_ib    = len(ibaraki_local_cards or []) + len(ibaraki_all or [])
     cnt_nat   = sum(len(s["items"]) for s in govt_sources) + len(kokkai_speeches or [])
-    cnt_sub   = sum(len(s["items"]) for s in (subsidy_sources or []))
 
     SOURCE_ICONS = {
         "茨城県 注目情報":"📌","茨城県 防災情報":"🚨",
-        "首相官邸":"🏛️","総務省":"📋","内閣府 地方分権改革":"🏢",
-        "農林水産省":"🌾","NHK 政治":"📺",
-        "国土交通省":"🏗️","厚生労働省":"🏥","環境省":"🌿",
-        "中小企業庁":"🏭","ミラサポplus":"💼","関連情報（省庁フィルタ）":"🔗",
+        "NHK 政治":"📺",
         "Googleアラート":"🔔",
     }
 
@@ -919,8 +837,7 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,  # noqa:
         ib_html = empty_msg("本日の茨城情報はありません")
 
     # ── Tab 3: 国政・国会 ──
-    nat_priority = ["総務省","首相官邸","NHK 政治","内閣府 地方分権改革",
-                    "農林水産省","国土交通省","厚生労働省","環境省"]
+    nat_priority = ["NHK 政治","茨城県 注目情報","Googleアラート"]
     nat_top = None; nat_top_src = ""
     for sname in nat_priority:
         cs = (national_cards_by_source or {}).get(sname, [])
@@ -945,9 +862,8 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,  # noqa:
 
     nat_top_link = nat_top["link"] if nat_top else ""
     GOVT_GROUPS_DEF = [
-        ("NHK政治ニュース",              ["NHK 政治"]),
-        ("官邸・総務・内閣府",           ["首相官邸","総務省","内閣府 地方分権改革"]),
-        ("省庁（農水・国交・厚労・環境）", ["農林水産省","国土交通省","厚生労働省","環境省"]),
+        ("NHK政治ニュース",  ["NHK 政治"]),
+        ("Googleアラート",   ["Googleアラート"]),
     ]
     for grp_label, src_names in GOVT_GROUPS_DEF:
         grp_html = ""
@@ -978,53 +894,8 @@ def build_html(gikai_cards, important_cards, minor_items, generated_at,  # noqa:
     if not nat_html:
         nat_html = empty_msg("本日の国政・国会情報はありません")
 
-    # ── Tab 4: 補助金 ──
-    sub_priority = ["中小企業庁","ミラサポplus","関連情報（省庁フィルタ）"]
-    sub_top = None; sub_top_src = ""
-    for sname in sub_priority:
-        cs = (subsidy_cards_by_source or {}).get(sname, [])
-        if cs:
-            sub_top = cs[0]; sub_top_src = sname; break
-    if not sub_top:
-        for s in (subsidy_sources or []):
-            if s["items"]:
-                sub_top = {"title": s["items"][0]["title"], "link": s["items"][0]["link"], "summary_html": ""}
-                sub_top_src = s["name"]; break
-
-    sub_html = ""
-    if sub_top:
-        icon = SOURCE_ICONS.get(sub_top_src, "💰")
-        sub_html += top_story(
-            eyebrow=f"{sub_top_src}・注目の補助金", title=sub_top["title"],
-            link=sub_top["link"], src_label=f"{icon} {sub_top_src}",
-            summary_html=sub_top.get("summary_html", ""),
-            accent="#D97706",
-            grad="linear-gradient(135deg,#FFFBEB 0%,#FEF3C7 100%)",
-            shadow="rgba(217,119,6,.10)")
-
-    sub_top_link = sub_top["link"] if sub_top else ""
-    sub_items_html = ""
-    for sname in sub_priority:
-        s = next((x for x in (subsidy_sources or []) if x["name"] == sname), None)
-        if not s or not s["items"]: continue
-        icon = SOURCE_ICONS.get(sname, "💰")
-        shown = set()
-        for c in (subsidy_cards_by_source or {}).get(sname, []):
-            if c["link"] == sub_top_link: continue
-            sub_items_html += art_row(c["title"], c["link"], f"{icon} {sname}")
-            shown.add(c["link"])
-        for item in s["items"]:
-            if item["link"] not in shown and item["link"] != sub_top_link:
-                sub_items_html += art_row(item["title"], item["link"], f"{icon} {sname}")
-    if sub_items_html:
-        sub_html += sec_div("補助金・助成金一覧") + sub_items_html
-
-    if not sub_html:
-        sub_html = empty_msg("本日の補助金情報はありません")
-
     # ── badge counts ──
     hita_bdg = bnav_badge(cnt_priority or "")
-    sub_bdg  = bnav_badge(cnt_sub or "")
 
     return f"""<!DOCTYPE html>
 <html lang="ja">
@@ -1165,7 +1036,7 @@ body{{font-family:'Noto Sans JP',-apple-system,sans-serif;background:var(--bg);
   <div class="hd-date">{date_str}</div>
   <div class="hd-right">
     <a class="chip alert" href="#tab-hita">{"⚠️ 要確認 " + str(cnt_priority) if cnt_priority else "📭 新着なし"}</a>
-    <span class="chip gray">新着 {cnt_hita + cnt_ib + cnt_nat + cnt_sub}</span>
+    <span class="chip gray">新着 {cnt_hita + cnt_ib + cnt_nat}</span>
   </div>
 </div>
 
@@ -1190,13 +1061,6 @@ body{{font-family:'Noto Sans JP',-apple-system,sans-serif;background:var(--bg);
   </div>
 </div>
 
-<!-- ── 補助金 ── -->
-<div class="tab-content" id="tab-subsidy">
-  <div class="page-sheet">
-{sub_html}
-  </div>
-</div>
-
 <!-- ── ボトムナビ ── -->
 <div class="bottomnav">
   <div class="bnav-item active" onclick="sw('tab-hita',this)">
@@ -1211,11 +1075,6 @@ body{{font-family:'Noto Sans JP',-apple-system,sans-serif;background:var(--bg);
   <div class="bnav-item" onclick="sw('tab-national',this)">
     <div class="bnav-icon">🏢</div>
     <div class="bnav-label">国政・国会</div>
-  </div>
-  <div class="bnav-item" onclick="sw('tab-subsidy',this)">
-    {sub_bdg}
-    <div class="bnav-icon">💰</div>
-    <div class="bnav-label">補助金</div>
   </div>
 </div>
 
@@ -1233,7 +1092,7 @@ function sw(id,btn){{
 }}
 (function(){{
   var h=location.hash.replace('#','');
-  var ids=['tab-hita','tab-ibaraki','tab-national','tab-subsidy'];
+  var ids=['tab-hita','tab-ibaraki','tab-national'];
   var idx=ids.indexOf(h);
   if(idx<0)return;
   document.querySelectorAll('.tab-content').forEach(function(c){{c.classList.remove('active')}});
@@ -1359,26 +1218,6 @@ def main():
         national_sources.append({"name": name, "items": items_feed})
         print(f"  {name}: {len(items_feed)}件（新着）")
 
-    # 首相官邸
-    kantei_items = _new_only(fetch_generic_rss(KANTEI_RSS_URL, max_items=10))
-    national_sources.append({"name": "首相官邸", "items": kantei_items})
-    print(f"  首相官邸: {len(kantei_items)}件（新着）")
-
-    # 総務省
-    soumu_items = _new_only(fetch_generic_rss(SOUMU_RSS_URL, max_items=10))
-    national_sources.append({"name": "総務省", "items": soumu_items})
-    print(f"  総務省: {len(soumu_items)}件（新着）")
-
-    # 内閣府 地方分権改革
-    cao_items = _new_only(fetch_generic_rss(CAO_RSS_URL, max_items=10))
-    national_sources.append({"name": "内閣府 地方分権改革", "items": cao_items})
-    print(f"  内閣府 地方分権改革: {len(cao_items)}件（新着）")
-
-    # 農林水産省
-    maff_items = _new_only(fetch_generic_rss(MAFF_RSS_URL, max_items=10))
-    national_sources.append({"name": "農林水産省", "items": maff_items})
-    print(f"  農林水産省: {len(maff_items)}件（新着）")
-
     # NHK 政治
     nhk_items = _new_only(fetch_generic_rss(NHK_SEIJI_RSS_URL, max_items=15))
     national_sources.append({"name": "NHK 政治", "items": nhk_items})
@@ -1390,43 +1229,11 @@ def main():
         national_sources.append({"name": "Googleアラート", "items": alert_items})
         print(f"  Googleアラート: {len(alert_items)}件（新着）")
 
-    # 省庁スクレイピング（月別プレスリリース）
-    print("省庁スクレイピング中...")
-    for src_cfg in MINISTRY_SCRAPE_SOURCES:
-        scraped = fetch_scraped_ministry(src_cfg, seen=seen, max_items=10)
-        national_sources.append({"name": src_cfg["name"], "items": scraped})
-        print(f"  {src_cfg['name']}: {len(scraped)}件（新着）")
-
     # 国政・県政: AI要約
     has_national = any(s["items"] for s in national_sources)
     national_cards_by_source = {}
     if has_national:
         national_cards_by_source = process_national_batch(national_sources)
-
-    # ===== 補助金・助成金情報 =====
-    print("補助金・助成金 RSS取得中...")
-    subsidy_sources = []
-    for name, url in SUBSIDY_RSS_SOURCES:
-        items_feed = _new_only(fetch_generic_rss(url, max_items=15))
-        subsidy_sources.append({"name": name, "items": items_feed})
-        print(f"  {name}: {len(items_feed)}件（新着）")
-
-    # 既存ソースからキーワードフィルタ
-    seen_sub_links = set()
-    filtered_sub = []
-    for s in national_sources:
-        for item in s["items"]:
-            if any(kw in item["title"] for kw in SUBSIDY_KEYWORDS) and item["link"] not in seen_sub_links:
-                seen_sub_links.add(item["link"])
-                filtered_sub.append({**item, "_source_from": s["name"]})
-    if filtered_sub:
-        subsidy_sources.append({"name": "関連情報（省庁フィルタ）", "items": filtered_sub})
-        print(f"  省庁フィルタ: {len(filtered_sub)}件")
-
-    subsidy_cards_by_source = {}
-    if any(s["items"] for s in subsidy_sources):
-        print("補助金・助成金 AI要約中...")
-        subsidy_cards_by_source = process_national_batch(subsidy_sources, ai_category="補助金・助成金")
 
     # 国会会議録API
     print("国会会議録API 検索中...")
@@ -1439,7 +1246,6 @@ def main():
         ib_local_cards, ib_digest, ib_other,
         national_sources, national_cards_by_source,
         kokkai_speeches,
-        subsidy_sources, subsidy_cards_by_source,
         cci_cards
     )
     HTML_FILE.write_text(html, encoding="utf-8")
@@ -1449,9 +1255,6 @@ def main():
     for i in ib_new:    mark_seen(i["link"], seen)
     for i in cci_cards: mark_seen(i["link"], seen)
     for s in national_sources:
-        for item in s["items"]:
-            mark_seen(item["link"], seen)
-    for s in subsidy_sources:
         for item in s["items"]:
             mark_seen(item["link"], seen)
     save_seen(seen)
