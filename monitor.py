@@ -1350,42 +1350,45 @@ def main():
     print("国政・県政 RSS取得中...")
     national_sources = []
 
+    def _new_only(items):
+        return [i for i in items if i["link"] not in seen]
+
     # 茨城県（3フィード）
     for name, url in IBARAKI_PREF_RSS:
-        items_feed = fetch_generic_rss(url, max_items=10)
+        items_feed = _new_only(fetch_generic_rss(url, max_items=10))
         national_sources.append({"name": name, "items": items_feed})
-        print(f"  {name}: {len(items_feed)}件")
+        print(f"  {name}: {len(items_feed)}件（新着）")
 
     # 首相官邸
-    kantei_items = fetch_generic_rss(KANTEI_RSS_URL, max_items=10)
+    kantei_items = _new_only(fetch_generic_rss(KANTEI_RSS_URL, max_items=10))
     national_sources.append({"name": "首相官邸", "items": kantei_items})
-    print(f"  首相官邸: {len(kantei_items)}件")
+    print(f"  首相官邸: {len(kantei_items)}件（新着）")
 
     # 総務省
-    soumu_items = fetch_generic_rss(SOUMU_RSS_URL, max_items=10)
+    soumu_items = _new_only(fetch_generic_rss(SOUMU_RSS_URL, max_items=10))
     national_sources.append({"name": "総務省", "items": soumu_items})
-    print(f"  総務省: {len(soumu_items)}件")
+    print(f"  総務省: {len(soumu_items)}件（新着）")
 
     # 内閣府 地方分権改革
-    cao_items = fetch_generic_rss(CAO_RSS_URL, max_items=10)
+    cao_items = _new_only(fetch_generic_rss(CAO_RSS_URL, max_items=10))
     national_sources.append({"name": "内閣府 地方分権改革", "items": cao_items})
-    print(f"  内閣府 地方分権改革: {len(cao_items)}件")
+    print(f"  内閣府 地方分権改革: {len(cao_items)}件（新着）")
 
     # 農林水産省
-    maff_items = fetch_generic_rss(MAFF_RSS_URL, max_items=10)
+    maff_items = _new_only(fetch_generic_rss(MAFF_RSS_URL, max_items=10))
     national_sources.append({"name": "農林水産省", "items": maff_items})
-    print(f"  農林水産省: {len(maff_items)}件")
+    print(f"  農林水産省: {len(maff_items)}件（新着）")
 
     # NHK 政治
-    nhk_items = fetch_generic_rss(NHK_SEIJI_RSS_URL, max_items=15)
+    nhk_items = _new_only(fetch_generic_rss(NHK_SEIJI_RSS_URL, max_items=15))
     national_sources.append({"name": "NHK 政治", "items": nhk_items})
-    print(f"  NHK 政治: {len(nhk_items)}件")
+    print(f"  NHK 政治: {len(nhk_items)}件（新着）")
 
     # Googleアラート（設定済みの場合のみ）
     for alert_url in GOOGLE_ALERT_RSS_URLS:
-        alert_items = fetch_generic_rss(alert_url, max_items=10)
+        alert_items = _new_only(fetch_generic_rss(alert_url, max_items=10))
         national_sources.append({"name": "Googleアラート", "items": alert_items})
-        print(f"  Googleアラート: {len(alert_items)}件")
+        print(f"  Googleアラート: {len(alert_items)}件（新着）")
 
     # 省庁スクレイピング（月別プレスリリース）
     print("省庁スクレイピング中...")
@@ -1404,9 +1407,9 @@ def main():
     print("補助金・助成金 RSS取得中...")
     subsidy_sources = []
     for name, url in SUBSIDY_RSS_SOURCES:
-        items_feed = fetch_generic_rss(url, max_items=15)
+        items_feed = _new_only(fetch_generic_rss(url, max_items=15))
         subsidy_sources.append({"name": name, "items": items_feed})
-        print(f"  {name}: {len(items_feed)}件")
+        print(f"  {name}: {len(items_feed)}件（新着）")
 
     # 既存ソースからキーワードフィルタ
     seen_sub_links = set()
@@ -1444,11 +1447,13 @@ def main():
 
     for i in new_items: mark_seen(i["link"], seen)
     for i in ib_new:    mark_seen(i["link"], seen)
-    # スクレイピング記事もseen.jsonに追加（翌日以降の重複防止）
+    for i in cci_cards: mark_seen(i["link"], seen)
     for s in national_sources:
-        if s["name"] in {c["name"] for c in MINISTRY_SCRAPE_SOURCES}:
-            for item in s["items"]:
-                mark_seen(item["link"], seen)
+        for item in s["items"]:
+            mark_seen(item["link"], seen)
+    for s in subsidy_sources:
+        for item in s["items"]:
+            mark_seen(item["link"], seen)
     save_seen(seen)
 
     # ===== LINE通知（本日未送信の場合のみ） =====
