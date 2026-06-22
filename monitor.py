@@ -1166,6 +1166,24 @@ def process_items_batch(items, label, batch_size=3):
     return cards
 
 
+def save_to_supabase(rows: list):
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not key:
+        print("Supabase未設定のためスキップ")
+        return
+    try:
+        from supabase import create_client
+        db = create_client(url, key)
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+        db.table("hitachinaka_data").delete().lt("fetched_at", cutoff).execute()
+        if rows:
+            db.table("hitachinaka_data").upsert(rows, on_conflict="link").execute()
+            print(f"✓ Supabase: {len(rows)}件保存")
+    except Exception as e:
+        print(f"Supabase保存エラー: {e}")
+
+
 def main():
     if not LINE_TOKEN or not LINE_USER_ID:
         print("ERROR: LINE環境変数未設定"); return
@@ -1281,6 +1299,27 @@ def main():
         for item in s["items"]:
             mark_seen(item["link"], seen)
     save_seen(seen)
+
+    # ===== Supabase保存 =====
+    sb_rows = []
+    for item in gikai:
+        card = next((c for c in gikai_cards if c["link"] == item["link"]), {})
+        sb_rows.append({"source": "hitachinaka", "category": "gikai",
+                         "title": item["title"], "link": item["link"],
+                         "pub_date": item.get("pub_date"), "summary": card.get("summary")})
+    for item in important:
+        card = next((c for c in important_cards if c["link"] == item["link"]), {})
+        sb_rows.append({"source": "hitachinaka", "category": "important",
+                         "title": item["title"], "link": item["link"],
+                         "pub_date": item.get("pub_date"), "summary": card.get("summary")})
+    for item in minor_24h:
+        sb_rows.append({"source": "hitachinaka", "category": "minor",
+                         "title": item["title"], "link": item["link"],
+                         "pub_date": item.get("pub_date")})
+    for card in ib_local_cards:
+        sb_rows.append({"source": "ibaraki_news", "category": "local",
+                         "title": card["title"], "link": card["link"], "summary": card.get("summary")})
+    save_to_supabase(sb_rows)
 
     # ===== LINE通知（本日未送信の場合のみ） =====
     jst_now  = datetime.now(timezone.utc) + timedelta(hours=9)
