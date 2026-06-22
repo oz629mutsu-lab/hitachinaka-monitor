@@ -6,6 +6,8 @@ LINE_TOKEN     = os.environ["LINE_TOKEN"]
 LINE_USER_ID   = os.environ["LINE_USER_ID"]
 NOTION_TOKEN   = os.environ.get("NOTION_TOKEN", "")
 NOTION_PARENT  = "38655d762728-80de-a27c-e143404406e9"
+SUPABASE_URL   = os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY   = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
 CSV_PATH = "x-analytics/latest.csv"
 
@@ -102,6 +104,38 @@ def create_notion_page(m, ai, top3):
     res.raise_for_status()
     print(f"Notion page: {res.json().get('url','')}")
 
+def save_to_supabase(m, ai, top3):
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return
+    today = datetime.date.today().strftime("%Y/%m/%d")
+    top3_text = "\n".join(
+        f"#{i+1} エンゲ率{top3[i].get('engagement_rate','?')} | {top3[i].get('text','')[:50]}"
+        for i in range(len(top3))
+    )
+    content = (
+        f"📊 週次レポート {today}\n\n"
+        f"投稿数：{m['count']}件\n"
+        f"インプレ：{m['impressions']:,}\n"
+        f"いいね：{m['likes']}\n"
+        f"リプライ：{m['replies']}\n"
+        f"平均エンゲ率：{m['eng_rate']:.2f}%\n\n"
+        f"【トップ3】\n{top3_text}\n\n"
+        f"【AI分析】\n{ai}"
+    )
+    res = requests.post(
+        f"{SUPABASE_URL}/rest/v1/x_reports",
+        headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+        },
+        json={"content": content, "posted_at": datetime.datetime.utcnow().isoformat()},
+        timeout=10,
+    )
+    res.raise_for_status()
+    print("Supabase書き込み完了")
+
 def main():
     rows = read_csv(CSV_PATH)
     print(f"CSV読み込み: {len(rows)}件")
@@ -123,6 +157,7 @@ def main():
     send_line(line_msg)
     print("LINE送信完了")
     create_notion_page(m, ai, m["top3"])
+    save_to_supabase(m, ai, m["top3"])
     print("完了")
 
 if __name__ == "__main__":
