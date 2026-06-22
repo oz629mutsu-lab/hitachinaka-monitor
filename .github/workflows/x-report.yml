@@ -1,0 +1,23 @@
+name: Xレポート
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'x-analytics/latest.csv'
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: ライブラリインストール
+        run: pip install requests
+      - name: レポート生成
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          LINE_TOKEN: ${{ secrets.LINE_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        run: python3 x-analytics/analyze_x.py
