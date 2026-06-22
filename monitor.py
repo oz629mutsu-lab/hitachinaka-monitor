@@ -1319,6 +1319,11 @@ def main():
     for card in ib_local_cards:
         sb_rows.append({"source": "ibaraki_news", "category": "local",
                          "title": card["title"], "link": card["link"], "summary": card.get("summary")})
+    for s in national_sources:
+        for item in s["items"]:
+            sb_rows.append({"source": s["name"], "category": "national",
+                             "title": item["title"], "link": item["link"],
+                             "pub_date": item.get("pub_date")})
     save_to_supabase(sb_rows)
 
     # ===== LINE通知（本日未送信の場合のみ） =====
