@@ -8,6 +8,9 @@ on:
       priority:
         description: priority
         default: mid
+      subs:
+        description: subtasks (newline separated)
+        default: ''
       link:
         description: link
         required: true
@@ -21,13 +24,18 @@ jobs:
           LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
           TASK: ${{ github.event.inputs.task }}
           PRIORITY: ${{ github.event.inputs.priority }}
+          SUBS: ${{ github.event.inputs.subs }}
           LINK: ${{ github.event.inputs.link }}
         run: |
           if   [ "$PRIORITY" = "high" ]; then LABEL="🔴 高優先度"
           elif [ "$PRIORITY" = "low"  ]; then LABEL="🔵 低優先度"
           else LABEL="🟡 中優先度"; fi
 
-          TEXT="$(printf '📝 ToDoに追加\n━━━━━━━━━━━━\n%s\n%s\n━━━━━━━━━━━━\nタップして追加 👇\n%s' "$TASK" "$LABEL" "$LINK")"
+          if [ -n "$SUBS" ]; then
+            TEXT="$(printf '📝 ToDoに追加\n━━━━━━━━━━━━\n%s\n%s\n\n手順:%s\n━━━━━━━━━━━━\nタップして追加 👇\n%s' "$TASK" "$LABEL" "$SUBS" "$LINK")"
+          else
+            TEXT="$(printf '📝 ToDoに追加\n━━━━━━━━━━━━\n%s\n%s\n━━━━━━━━━━━━\nタップして追加 👇\n%s' "$TASK" "$LABEL" "$LINK")"
+          fi
 
           PAYLOAD=$(jq -n --arg to "$LINE_USER_ID" --arg text "$TEXT" \
             '{to: $to, messages: [{type: "text", text: $text}]}')
