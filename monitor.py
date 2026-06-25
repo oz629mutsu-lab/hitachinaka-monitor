@@ -618,10 +618,10 @@ def process_national_batch(sources, ai_category="国政・県政"):
 
     # ソース別設定
     SOURCE_CONFIG = {
-        "茨城県 注目情報":  {"max_pdfs": 8,  "max_text": 5000},
-        "茨城県 防災情報":  {"max_pdfs": 5,  "max_text": 4000},
+        "茨城県 注目情報":  {"max_pdfs": 2,  "max_text": 5000},
+        "茨城県 防災情報":  {"max_pdfs": 2,  "max_text": 4000},
         "NHK 政治":        {"max_pdfs": 0,  "max_text": 3000},
-        "Googleアラート":  {"max_pdfs": 2,  "max_text": 3000},
+        "Googleアラート":  {"max_pdfs": 1,  "max_text": 3000},
     }
 
     print(f"  国政・県政 {len(all_items)}件 ページ取得中...")
