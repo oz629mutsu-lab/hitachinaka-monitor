@@ -1179,8 +1179,10 @@ def save_to_supabase(rows: list):
         cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
         db.table("hitachinaka_data").delete().lt("fetched_at", cutoff).execute()
         if rows:
-            db.table("hitachinaka_data").upsert(rows, on_conflict="link").execute()
-            print(f"✓ Supabase: {len(rows)}件保存", flush=True)
+            seen_links: dict = {}
+            deduped = [r for r in rows if r["link"] not in seen_links and not seen_links.update({r["link"]: True})]
+            db.table("hitachinaka_data").upsert(deduped, on_conflict="link").execute()
+            print(f"✓ Supabase: {len(deduped)}件保存", flush=True)
         else:
             print("Supabase: 保存対象なし", flush=True)
     except Exception as e:
