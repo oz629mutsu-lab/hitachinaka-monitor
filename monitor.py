@@ -1169,8 +1169,9 @@ def process_items_batch(items, label, batch_size=3):
 def save_to_supabase(rows: list):
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    print(f"Supabase保存開始: {len(rows)}件 / URL設定={'有' if url else '無'}", flush=True)
     if not url or not key:
-        print("Supabase未設定のためスキップ")
+        print("Supabase未設定のためスキップ", flush=True)
         return
     try:
         from supabase import create_client
@@ -1179,9 +1180,11 @@ def save_to_supabase(rows: list):
         db.table("hitachinaka_data").delete().lt("fetched_at", cutoff).execute()
         if rows:
             db.table("hitachinaka_data").upsert(rows, on_conflict="link").execute()
-            print(f"✓ Supabase: {len(rows)}件保存")
+            print(f"✓ Supabase: {len(rows)}件保存", flush=True)
+        else:
+            print("Supabase: 保存対象なし", flush=True)
     except Exception as e:
-        print(f"Supabase保存エラー: {e}")
+        print(f"Supabase保存エラー: {e}", flush=True)
 
 
 def main():
