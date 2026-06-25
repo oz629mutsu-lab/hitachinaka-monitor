@@ -1,0 +1,35 @@
+name: ToDo LINE通知
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'タスク名'
+        required: true
+      priority:
+        description: '優先度ラベル'
+        default: '🟡 中優先度'
+      link:
+        description: 'PWA追加リンク'
+        required: true
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: LINEに通知を送る
+        run: |
+          MESSAGE="📝 ToDoに追加
+━━━━━━━━━━━━
+${{ github.event.inputs.task }}
+${{ github.event.inputs.priority }}
+━━━━━━━━━━━━
+タップして追加 👇
+${{ github.event.inputs.link }}"
+
+          curl -s -o /tmp/result.json -w "%{http_code}" \
+            -X POST https://api.line.me/v2/bot/message/push \
+            -H "Authorization: Bearer ${{ secrets.LINE_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"to\":\"${{ secrets.LINE_USER_ID }}\",\"messages\":[{\"type\":\"text\",\"text\":$(echo "$MESSAGE" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}]}"
+          
+          cat /tmp/result.json
