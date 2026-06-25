@@ -23,25 +23,16 @@ jobs:
           PRIORITY: ${{ github.event.inputs.priority }}
           LINK: ${{ github.event.inputs.link }}
         run: |
-          python3 - << 'EOF'
-import os, json, urllib.request
-token   = os.environ["LINE_TOKEN"]
-user_id = os.environ["LINE_USER_ID"]
-task    = os.environ["TASK"]
-priority = os.environ["PRIORITY"]
-link    = os.environ["LINK"]
+          if   [ "$PRIORITY" = "high" ]; then LABEL="🔴 高優先度"
+          elif [ "$PRIORITY" = "low"  ]; then LABEL="🔵 低優先度"
+          else LABEL="🟡 中優先度"; fi
 
-# 優先度ラベル
-label = {"high": "🔴 高優先度", "mid": "🟡 中優先度", "low": "🔵 低優先度"}.get(priority, "🟡 中優先度")
-text = f"📝 ToDoに追加\n━━━━━━━━━━━━\n{task}\n{label}\n━━━━━━━━━━━━\nタップして追加 👇\n{link}"
+          TEXT="$(printf '📝 ToDoに追加\n━━━━━━━━━━━━\n%s\n%s\n━━━━━━━━━━━━\nタップして追加 👇\n%s' "$TASK" "$LABEL" "$LINK")"
 
-payload = json.dumps({"to": user_id, "messages": [{"type": "text", "text": text}]}).encode()
-req = urllib.request.Request(
-    "https://api.line.me/v2/bot/message/push",
-    data=payload,
-    headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-    method="POST"
-)
-with urllib.request.urlopen(req) as res:
-    print("OK:", res.status)
-EOF
+          PAYLOAD=$(jq -n --arg to "$LINE_USER_ID" --arg text "$TEXT" \
+            '{to: $to, messages: [{type: "text", text: $text}]}')
+
+          curl -sf -X POST https://api.line.me/v2/bot/message/push \
+            -H "Authorization: Bearer $LINE_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" && echo "LINE送信成功"
